@@ -41,6 +41,7 @@ func init() {
 		"test-gamma":      MakePatternTestGamma,
 		"test-rgb":        MakePatternTestRGB,
 		"white":           MakePatternWhite,
+		"colorbox":        MakePatternSpatialColorBox,
 	}
 }
 
