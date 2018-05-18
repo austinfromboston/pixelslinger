@@ -37,6 +37,8 @@ func init() {
 		"sailor-moon":     MakePatternSailorMoon,
 		"shield":          MakePatternShield,
 		"spatial-stripes": MakePatternSpatialStripes,
+		"square":          MakePatternSquare,
+		//"listener":        MakePatternListener,
 		"sunset":          MakePatternSunset,
 		"test":            MakePatternTest,
 		"test-gamma":      MakePatternTestGamma,
