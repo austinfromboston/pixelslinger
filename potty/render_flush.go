@@ -8,14 +8,15 @@ import (
 )
 
 const (
-	FLUSH_LENGTH = 4.0 //seconds
-	FLUSH_REFILL = 8.0 //seconds
-	FLUSH_REST   = 4.0 //seconds
-	FLUSH_CYCLE  = FLUSH_LENGTH + FLUSH_REST + FLUSH_REFILL
+	DrainingComplete = 4.0                             // seconds
+	RefillStarting   = 8.0                             // seconds
+	RefillComplete   = 16.0                            // seconds
+	RefillDuration   = RefillComplete - RefillStarting // seconds
 
-	// degree to which the stips don't just go up and down in unison
-	// higher is less jitter
-	FLUSH_JITTER = 0.15
+	// Size of falling water streams when draining
+	FlushStreamerSize = 0.15
+
+	FlushControlPad = midi.LPD8_PAD3
 )
 
 type FlushEffect struct {
@@ -39,15 +40,13 @@ func NewFlushEffect(space *PixelSpace) *FlushEffect {
 }
 
 func (f *FlushEffect) SetFlushState(midiState *midi.MidiState, t float64) {
-
-	// TODO: check midiState for flush signal...
-	flushSignalRecieved := t > f.startTime+FLUSH_CYCLE+10
+	flushPad := midiState.KeyVolumes[FlushControlPad]
 
 	switch {
-	case !f.isFlushing && flushSignalRecieved:
+	case !f.isFlushing && flushPad > 0:
 		f.isFlushing = true
 		f.startTime = t
-	case t > f.startTime+FLUSH_CYCLE:
+	case t > f.startTime+RefillComplete:
 		f.isFlushing = false
 	}
 }
@@ -58,23 +57,31 @@ func (f *FlushEffect) Render(midiState *midi.MidiState, t float64) {
 	flushTime := t - f.startTime
 
 	for i, p := range f.space.Pixels {
+
+		// calculate wave pattern
 		waterLevel := 1.0 - colorutils.Cos(p.X*0.2+p.Y*0.8, t/4, 1, 0.1, 0.6)/5.0
+
 		switch {
-		//flushing
-		case flushTime < FLUSH_LENGTH:
-			waterLevel -= flushTime / FLUSH_LENGTH
-			waterLevel += (FLUSH_JITTER * f.random[i])
-		//drained
-		case flushTime < FLUSH_LENGTH+FLUSH_REST:
+
+		//Draining
+		case flushTime < DrainingComplete:
+			// lower the water level
+			waterLevel -= flushTime / DrainingComplete
+			// make falling streamers
+			waterLevel += (FlushStreamerSize * f.random[i])
+
+		//Resting
+		case flushTime < RefillStarting:
 			waterLevel -= 1.0
-		//refilling
-		case flushTime < FLUSH_CYCLE:
-			refillTime := flushTime - (FLUSH_LENGTH + FLUSH_REST)
-			waterLevel -= 1.0 - refillTime/FLUSH_REFILL
+
+		//Refilling
+		case flushTime < RefillComplete:
+			refillTime := flushTime - RefillStarting
+			waterLevel -= 1.0 - refillTime/RefillDuration
 		}
 
 		// If pixel is above the waterlevel, paint it black
-		if waterLevel < f.space.ZNormal(i) {
+		if waterLevel < f.space.ZNormal(p) {
 			p.Color = Black
 		}
 	}

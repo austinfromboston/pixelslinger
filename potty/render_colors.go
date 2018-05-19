@@ -5,17 +5,17 @@ import (
 	"github.com/longears/pixelslinger/midi"
 )
 
-type WaterEffect struct {
+type SlowColorEffect struct {
 	space *PixelSpace
 }
 
-func NewWaterEffect(space *PixelSpace) *WaterEffect {
+func NewSlowColorEffect(space *PixelSpace) *WaterEffect {
 	return &WaterEffect{
 		space: space,
 	}
 }
 
-func (w *WaterEffect) Render(midiState *midi.MidiState, t float64) {
+func (w *SlowColorEffect) Render(midiState *midi.MidiState, t float64) {
 	for _, p := range w.space.Pixels {
 		s1 := colorutils.Cos((p.Z*0.3)*(p.Y*0.3)*(p.X*0.3), t/8, 1, 0.1, 0.7)
 		s3 := colorutils.Cos(p.X*0.2+p.Y*0.8, t/4, 1, 0.1, 0.6)
