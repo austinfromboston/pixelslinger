@@ -31,8 +31,9 @@ func MakePattern(locations []float64) func(bytesIn chan []byte, bytesOut chan []
 	space := NewPixelSpace(locations)
 
 	// create the renderers
-	renderers := []Renderer{
-		NewWaterEffect(space),  // water should go first to provide a base color
+	renderStack := []Renderer{
+		NewWaterEffect(space), // water should go first to provide a base color
+		NewColorDanceEffect(space),
 		NewBubbleEffect(space), // tiny bubbles
 		NewFlushEffect(space),  // flush should go last to mask off the shape
 	}
@@ -40,9 +41,11 @@ func MakePattern(locations []float64) func(bytesIn chan []byte, bytesOut chan []
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 		for bytes := range bytesIn {
 			t := float64(time.Now().UnixNano())/1.0e9 - 9.4e8
-			for _, r := range renderers {
+
+			for _, r := range renderStack {
 				r.Render(midiState, t)
 			}
+
 			bytesOut <- space.ToBytes(bytes)
 		}
 	}

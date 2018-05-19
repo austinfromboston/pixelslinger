@@ -29,7 +29,7 @@ func (b *BubbleEffect) Render(midiState *midi.MidiState, t float64) {
 	for _, p := range b.space.Pixels {
 		bubble := b.bubbles[p.XFlat]
 		pZ := b.space.ZNormal(p)
-		p.Color = p.Color.BlendLab(White, bubble.Strength(pZ))
+		p.Color = p.Color.BlendRgb(White, bubble.Strength(pZ)).Clamped()
 	}
 
 	for _, bubble := range b.bubbles {
@@ -50,7 +50,7 @@ func NewBubble() *Bubble {
 }
 
 func (b *Bubble) Move() {
-	b.Z += 0.01
+	b.Z += b.Speed
 	if b.Z >= BSpread {
 		b.Z -= BSpread
 		b.Speed = BSpeed + RandGen.Float64()*BSpeedVar
@@ -62,7 +62,7 @@ func (b *Bubble) Strength(pZ float64) float64 {
 		return 0.0
 	}
 
-	return Clamp(0.6 - (b.Z-pZ)/(b.Z+pZ)*10)
+	return Clamp(0.9 - (b.Z-pZ)/(b.Z+pZ)*10)
 }
 
 func Clamp(s float64) float64 {

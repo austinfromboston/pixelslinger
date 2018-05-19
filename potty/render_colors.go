@@ -1,31 +1,106 @@
 package potty
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
+	"math"
+
+	"github.com/longears/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
+	colorful "github.com/lucasb-eyer/go-colorful"
 )
 
-type SlowColorEffect struct {
-	space *PixelSpace
+const (
+	CSpread   = 9     // How spread out the buubbles are (aka few can you see)
+	CSpeed    = 0.004 // How fast they go up
+	CSpeedVar = 0.004 // Speed variation each time a circle starts over
+	CLifeSpan = 1.0
+
+	CircleButton = config.BLINK_CIRCLE_PAD
+)
+
+type ColorDanceEffect struct {
+	space            *PixelSpace
+	circles          map[float64]*Circle
+	resetTime        float64
+	currentCLifeSpan float64
+	buttonPressed    bool
 }
 
-func NewSlowColorEffect(space *PixelSpace) *WaterEffect {
-	return &WaterEffect{
-		space: space,
+func NewColorDanceEffect(space *PixelSpace) *ColorDanceEffect {
+	return &ColorDanceEffect{
+		space:   space,
+		circles: make(map[float64]*Circle),
 	}
 }
 
-func (w *SlowColorEffect) Render(midiState *midi.MidiState, t float64) {
-	for _, p := range w.space.Pixels {
-		s1 := colorutils.Cos((p.Z*0.3)*(p.Y*0.3)*(p.X*0.3), t/8, 1, 0.1, 0.7)
-		s3 := colorutils.Cos(p.X*0.2+p.Y*0.8, t/4, 1, 0.1, 0.6)
-		s2 := colorutils.Cos(p.Z*0.2, t/10, 1, 0.0, 1.0)
-		s4 := 0.3*s1 + 0.7*s3
+func (e *ColorDanceEffect) Render(midiState *midi.MidiState, t float64) {
+	if !e.buttonPressed && midiState.KeyVolumes[CircleButton] > 0 {
+		e.buttonPressed = true
+		circle := NewCircle(e.space, t)
+		e.circles[circle.ID()] = circle
+	}
 
-		// p.Color = White
-		p.Color = p.Color.BlendLab(LightCyan, s1)
-		p.Color = p.Color.BlendLab(DarkCyan, s2)
-		p.Color = p.Color.BlendLab(Aquamarine, s3)
-		p.Color = p.Color.BlendLab(Teal, s4)
+	if midiState.KeyVolumes[CircleButton] == 0 {
+		e.buttonPressed = false
+	}
+
+	for _, pixel := range e.space.Pixels {
+		for _, circle := range e.circles {
+			circle.Blend(pixel)
+		}
+	}
+
+	for _, circle := range e.circles {
+		circle.Move(t)
+		if circle.Dead {
+			delete(e.circles, circle.ID())
+		}
+	}
+}
+
+type Circle struct {
+	space *PixelSpace
+	Pixel
+	Speed    float64
+	Strength float64
+	EndTime  float64
+	Dead     bool
+}
+
+func NewCircle(space *PixelSpace, t float64) *Circle {
+	p := space.RandomPixel()
+	p.Color = colorful.HappyColor()
+	return &Circle{
+		space:   space,
+		Pixel:   *p,
+		Speed:   CSpeed + RandGen.Float64()*CSpeedVar,
+		EndTime: t + CLifeSpan,
+	}
+
+}
+
+func (c *Circle) ID() float64 {
+	return c.EndTime
+}
+
+func (c *Circle) Blend(pixel *Pixel) {
+	dist := c.space.NormalDistance(pixel, &c.Pixel)
+	falloff := math.Pow(1.0-dist, 8)
+	strength := falloff * c.Strength
+	color := c.Color.BlendHcl(White, falloff*0.9).Clamped()
+
+	pixel.Color = pixel.Color.BlendRgb(color, strength).Clamped()
+}
+
+func (c *Circle) Move(t float64) {
+	if t > c.EndTime {
+		c.Dead = true
+		return
+	}
+
+	c.Strength = (c.EndTime - t) / CLifeSpan
+
+	c.Z += c.Speed
+	if c.Z >= CSpread {
+		c.Z -= CSpread
 	}
 }

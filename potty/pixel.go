@@ -1,6 +1,7 @@
 package potty
 
 import (
+	"math"
 	"sort"
 
 	"github.com/longears/pixelslinger/colorutils"
@@ -26,7 +27,7 @@ type PixelSpace struct {
 }
 
 // NewPixelSpace takes a slice of xyz coordinates and returns a slice of pixels
-// in a bouunding box
+// in a bounding box.
 func NewPixelSpace(locations []float64) *PixelSpace {
 	len := len(locations) / 3
 	b := &PixelSpace{
@@ -81,18 +82,35 @@ func NewPixelSpace(locations []float64) *PixelSpace {
 	return b
 }
 
+// Z coord for pixel in [0,1] space
+func (b *PixelSpace) RandomPixel() *Pixel {
+	i := int(math.Floor(RandGen.Float64() * float64(b.Len)))
+	return b.Pixels[i]
+}
+
+// X coord for pixel in [0,1] space
 func (b *PixelSpace) XNormal(pixel *Pixel) float64 {
 	return (pixel.X - b.MinX) / b.MaxX
 }
 
+// Z coord for pixel in [0,1] space
 func (b *PixelSpace) ZNormal(pixel *Pixel) float64 {
 	return (pixel.Z - b.MinZ) / b.MaxZ
 }
 
+// XFlat coord for pixel in [0,1] space
 func (b *PixelSpace) XFlatNormal(pixel *Pixel) float64 {
 	return (pixel.XFlat - b.MinXFlat) / b.MaxXFlat
 }
 
+// Distance between two pixels in [0,1] space
+func (b *PixelSpace) NormalDistance(p1, p2 *Pixel) float64 {
+	pX := math.Pow(b.XFlatNormal(p1)-b.XFlatNormal(p2), 2)
+	pZ := math.Pow(b.ZNormal(p1)-b.ZNormal(p2), 2)
+	return math.Sqrt(pX + pZ)
+}
+
+// ToBytes writes the Pixel to the output buffer
 func (b *PixelSpace) ToBytes(bytes []byte) []byte {
 	for i := 0; i < b.Len; i++ {
 		bytes[i*3+0], bytes[i*3+1], bytes[i*3+2] = b.Pixels[i].ToBytes()
