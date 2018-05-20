@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/longears/pixelslinger/colorutils"
+	"github.com/longears/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
 )
 
@@ -16,7 +17,7 @@ const (
 	// Size of falling water streams when draining
 	FlushStreamerSize = 0.15
 
-	FlushControlPad = midi.LPD8_PAD3
+	FlushControlPad = config.FLUSH_PAD
 )
 
 type FlushEffect struct {

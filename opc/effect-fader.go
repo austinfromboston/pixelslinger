@@ -5,13 +5,13 @@ package opc
 //   Fade the even pixels to black first, then the odd pixels.
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
 	"math"
 	"math/rand"
 	"time"
-	"fmt"
+
+	"github.com/longears/pixelslinger/colorutils"
+	"github.com/longears/pixelslinger/config"
+	"github.com/longears/pixelslinger/midi"
 )
 
 func MakeEffectFader(locations []float64) ByteThread {
@@ -30,26 +30,6 @@ func MakeEffectFader(locations []float64) ByteThread {
 		EYELID_BLEND = 0.25 // size of eyelid gradient relative to entire bounding box
 
 		FADE_TO_BLACK_TIME = 15.0 / 40.0 // in seconds
-
-		FLUSH_LENGTH = 5.0 //seconds
-		FLUSH_REFILL = 30.0 //seconds
-		FLUSH_REST = 0.0 //seconds
-		FLUSH_CYCLE = FLUSH_LENGTH+FLUSH_REST+FLUSH_REFILL
-		//calculate the positions in the [0,1] domain when flush and refill will happen
-		// order is: rest, flush, refill
-		FLUSH_POINT = 1.0 - ((FLUSH_LENGTH+FLUSH_REFILL)/FLUSH_CYCLE)
-		REFILL_POINT = 1.0 - (FLUSH_REFILL/FLUSH_CYCLE)
-		UNIT_REST = FLUSH_REST / FLUSH_CYCLE
-		UNIT_REST_FLUSH = (FLUSH_REST + FLUSH_LENGTH) / FLUSH_CYCLE
-		UNIT_FLUSH = FLUSH_LENGTH / FLUSH_CYCLE
-		UNIT_REFILL = FLUSH_REFILL / FLUSH_CYCLE
-
-		// degree to which the stips don't just go up and down in unison
-		// higher is less jitter
-		FLUSH_JITTER = 5.0
-
-		// speck weight
-		SPECK_WEIGHT = 0.15
 	)
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
@@ -100,33 +80,6 @@ func MakeEffectFader(locations []float64) ByteThread {
 			n_pixels := len(bytes) / 3
 			t := float64(time.Now().UnixNano())/1.0e9 - 9.4e8
 
-			// lightning flash pad
-			flashPad := midiState.KeyVolumes[config.FLASH_PAD]
-			if flashPad > 0 {
-				lastFlashTime = t
-			}
-
-			// flush toilette effect pad
-			// check to see if flush cycle has happend before last time
-
-			// lightning flash pad
-			flushPad := midiState.KeyVolumes[config.FLUSH_PAD]
-			//fmt.Printf("Flush pad val: %v\n", flushPad)
-			// check to see if button is pushed
-			if flushPad > 0 {
-				// check to see if we're in the middle of a current flush time
-				//fmt.Printf("t val: %v\n", t)
-				//fmt.Printf("last time val: %v\n", lastFlushTime)
-				//fmt.Printf("cycle val: %v\n", FLUSH_CYCLE)
-				//fmt.Printf("calc val: %v\n", t-lastFlushTime > FLUSH_CYCLE)
-				// TODO need to think about storing the time that flush finishes
-				if (t-lastFlushTime > FLUSH_CYCLE) {
-					// this means that the time diffence is more than the time it takes to make the cycle
-					shouldFlush = true
-					lastFlushTime = t
-				}
-			}
-
 			// twinkle strobe pad
 			twinklePad := float64(midiState.KeyVolumes[config.TWINKLE_PAD]) / 127.0
 			if twinklePad > 0 {
@@ -135,7 +88,6 @@ func MakeEffectFader(locations []float64) ByteThread {
 			}
 
 			// blink regions
-			blinkCirclePad := float64(midiState.KeyVolumes[config.BLINK_CIRCLE_PAD]) / 127.0
 			blinkArchPad := float64(midiState.KeyVolumes[config.BLINK_ARCH_PAD]) / 127.0
 			blinkBackPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0
 
@@ -221,13 +173,7 @@ func MakeEffectFader(locations []float64) ByteThread {
 					b += thisTwinkle
 				}
 
-
 				// blink regions
-				if blinkCirclePad > 0 && ii < 160*1 {
-					r = 1
-					g = 1
-					b = 1
-				}
 				if blinkArchPad > 0 && 160*1 <= ii && ii < 160*3 {
 					r = 1
 					g = 1
@@ -252,42 +198,6 @@ func MakeEffectFader(locations []float64) ByteThread {
 					r *= fadeToBlackAmount
 					g *= fadeToBlackAmount
 					b *= fadeToBlackAmount
-				}
-
-				// flushing
-				if shouldFlush {
-					//position in cycle on the interval [0,1]
-					flush_cyc_pos := colorutils.PosMod2((t-lastFlushTime)/FLUSH_CYCLE, 1)
-					flush_amount := 0.0
-					// reset part
-					if flush_cyc_pos >= 0.99 {
-						fmt.Printf("Disabling flush")
-						shouldFlush = false
-					}
-
-					//flush part
-					if flush_cyc_pos > FLUSH_POINT && flush_cyc_pos < REFILL_POINT {
-						flush_amount = 1- (flush_cyc_pos - UNIT_REST) / UNIT_FLUSH
-						}
-					//refill part
-					if flush_cyc_pos > REFILL_POINT {
-						flush_amount =  (flush_cyc_pos - UNIT_REST_FLUSH) / UNIT_REFILL
-					}
-					//rest part
-					if flush_cyc_pos < FLUSH_POINT {
-						flush_amount = max_coord_z - (0.1*randomValues[ii])
-					}
-
-					// add some effects to the flush_amount curtain
-					s3 := colorutils.Cos(x*0.2 + y*0.8, t/4, 1, 0.1, 0.6)
-					flush_amount += (s3  / (FLUSH_JITTER))
-					flush_amount += (SPECK_WEIGHT*randomValues[ii])
-					z_amount := (z - min_coord_z) / max_coord_z
-					if flush_amount < z_amount {
-						r = 0
-						g = 0
-						b = 0
-					}
 				}
 
 				bytes[ii*3+0] = colorutils.FloatToByte(r)
