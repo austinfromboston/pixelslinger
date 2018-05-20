@@ -70,8 +70,6 @@ func MakeEffectFader(locations []float64) ByteThread {
 		}
 
 		lastFlashTime := 0.0
-		lastFlushTime := 0.0
-		shouldFlush := false
 		lastTwinkleTime := 0.0
 		lastTwinklePad := 0.0
 		lastFadeToBlackPad := 0.0
@@ -125,8 +123,6 @@ func MakeEffectFader(locations []float64) ByteThread {
 				g := float64(bytes[ii*3+1]) / 255
 				b := float64(bytes[ii*3+2]) / 255
 
-				x := locations[ii*3+0]
-				y := locations[ii*3+1]
 				z := locations[ii*3+2]
 
 				// zp ranges from 0 to 1 in the bounding box
