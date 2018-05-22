@@ -44,6 +44,11 @@ func (f *FlushEffect) SetFlushState(midiState *midi.MidiState, t float64) {
 	flushPad := midiState.KeyVolumes[FlushControlPad]
 
 	switch {
+	/* Fake flush
+	case t > f.startTime+RefillComplete+3.25:
+		f.isFlushing = true
+		f.startTime = t
+	*/
 	case !f.isFlushing && flushPad > 0:
 		f.isFlushing = true
 		f.startTime = t

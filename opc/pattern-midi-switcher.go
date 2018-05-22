@@ -5,10 +5,11 @@ package opc
 //   LEDs are colored in rainbow order according to the circle of fifths.
 
 import (
+	"time"
+
 	"github.com/longears/pixelslinger/colorutils"
 	"github.com/longears/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
-	"time"
 )
 
 func MakePatternMidiSwitcher(locations []float64) ByteThread {
@@ -25,7 +26,7 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 			"eye",
 			"white",
 			"aqua",
-			"aquab",
+			"house-potty",
 		}
 
 		// channels for communication with subpattern

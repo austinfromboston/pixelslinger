@@ -4,7 +4,6 @@ import (
 	"math"
 	"sort"
 
-	"github.com/longears/pixelslinger/colorutils"
 	colorful "github.com/lucasb-eyer/go-colorful"
 )
 
@@ -110,6 +109,12 @@ func (b *PixelSpace) NormalDistance(p1, p2 *Pixel) float64 {
 	return math.Sqrt(pX + pZ)
 }
 
+func (b *PixelSpace) SetFromBytes(bytes []byte) {
+	for i := 0; i < b.Len; i++ {
+		b.Pixels[i].Color = ColorFromBytes(bytes[i*3+0], bytes[i*3+1], bytes[i*3+2])
+	}
+}
+
 // ToBytes writes the Pixel to the output buffer
 func (b *PixelSpace) ToBytes(bytes []byte) []byte {
 	for i := 0; i < b.Len; i++ {
@@ -146,6 +151,16 @@ func NewPixel(x, y, z float64) *Pixel {
 }
 
 func (p *Pixel) ToBytes() (r, g, b byte) {
-	R, G, B := p.Color.LinearRgb()
-	return colorutils.FloatToByte(R), colorutils.FloatToByte(G), colorutils.FloatToByte(B)
+	r, g, b = p.Color.RGB255()
+	return
+	R, G, B := p.Color.RGB255()
+	return byte(R), byte(G), byte(B)
+}
+
+func ColorFromBytes(r, g, b byte) colorful.Color {
+	return colorful.Color{R: FloatToByte(r), G: FloatToByte(g), B: FloatToByte(b)}
+}
+
+func FloatToByte(x byte) float64 {
+	return float64(x) / 255
 }
