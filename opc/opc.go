@@ -79,6 +79,7 @@ const GAMMA = 2.2
 const CONNECTION_TRIES = 1     // milliseconds
 const WAIT_TO_RETRY = 1000     // milliseconds
 const WAIT_BETWEEN_RETRIES = 1 // milliseconds
+const CHANNEL_BYTE_SIZE = 360
 
 //--------------------------------------------------------------------------------
 // OPC LAYOUT FORMAT
@@ -280,6 +281,13 @@ func MakeSendToLPD8806Thread(spiFn string) ByteThread {
 	}
 }
 
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
 // Return a ByteThread which sends the bytes out as OPC messages to the given ipPort.
 // Create OPC headers for each byte slice it sends.
 // Initiate and maintains a long-lived connection to ipPort.  If the connection is bad at any point
@@ -325,30 +333,44 @@ func MakeSendToOpcThread(ipPort string) ByteThread {
 				bytes[ii] = gamma_lookup[bytes[ii+0]]
 			}
 
-			// make and send OPC header
-			channel := byte(0)
-			command := byte(0)
-			lenLowByte := byte(len(bytes) % 256)
-			lenHighByte := byte(len(bytes) / 256)
-			header := []byte{channel, command, lenHighByte, lenLowByte}
-			_, err = conn.Write(header)
-			if err != nil {
-				// net error -- set conn to nil so we can try to make a new one
-				fmt.Println("[opc.SendToOpcThread]", err)
-				conn = nil
-				bytesOut <- bytes
-				continue
+			currentChannel := 0
+			//channeledBytes := make([]byte, 6916)
+
+			for j := 0; j < len(bytes); j = j + CHANNEL_BYTE_SIZE + 1 {
+				lastByte := min(len(bytes), j+CHANNEL_BYTE_SIZE)
+				localBytes := bytes[j:lastByte]
+				//localBytes := bytes
+				// make and send OPC header
+				channel := byte(currentChannel)
+				command := byte(0)
+				lenLowByte := byte(len(localBytes) % 256)
+				lenHighByte := byte(len(localBytes) / 256)
+				header := []byte{channel, command, lenHighByte, lenLowByte}
+				//channeledBytes = append(channeledBytes, header...)
+				//channeledBytes = append(channeledBytes, localBytes...)
+				_, err = conn.Write(header)
+				if err != nil {
+					//net error -- set conn to nil so we can try to make a new one
+					fmt.Println("[opc.SendToOpcThread]", err)
+					conn = nil
+					bytesOut <- localBytes
+					continue
+				}
+
+				// send actual pixel values
+				//_, err = conn.Write(channeledBytes)
+				_, err = conn.Write(localBytes)
+				if err != nil {
+					fmt.Println("error case 2")
+					// net error -- set conn to nil so we can try to make a new one
+					fmt.Println("[opc.SendToOpcThread]", err)
+					conn = nil
+					bytesOut <- bytes
+					continue
+				}
+				currentChannel = currentChannel + 1
 			}
 
-			// send actual pixel values
-			_, err = conn.Write(bytes)
-			if err != nil {
-				// net error -- set conn to nil so we can try to make a new one
-				fmt.Println("[opc.SendToOpcThread]", err)
-				conn = nil
-				bytesOut <- bytes
-				continue
-			}
 			bytesOut <- bytes
 		}
 	}
