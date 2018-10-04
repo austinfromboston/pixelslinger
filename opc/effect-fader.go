@@ -170,12 +170,12 @@ func MakeEffectFader(locations []float64) ByteThread {
 				}
 
 				// blink regions
-				if blinkArchPad > 0 && 160*1 <= ii && ii < 160*3 {
+				if blinkArchPad > 0 && ((160*1 <= ii && ii < 160*2.25) || (160*8 <= ii && ii < 160*9)) {
 					r = 1
 					g = 1
 					b = 1
 				}
-				if blinkBackPad > 0 && 160*3 <= ii && ii < 160*5 {
+				if blinkBackPad > 0 && ((160*3.5 <= ii && ii < 160*5) || (160*13 <= ii && ii < 160*14)) {
 					r = 1
 					g = 1
 					b = 1
