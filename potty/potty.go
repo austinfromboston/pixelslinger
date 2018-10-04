@@ -35,7 +35,8 @@ func MakeEffectFaderPattern(locations []float64) func(bytesIn chan []byte, bytes
 
 	return makePattern(space, []Renderer{
 		NewColorDanceEffect(space), // banging colors to the midi beat
-		NewFlushEffect(space),      // flush masks off the shape
+		// flush confuses drunk people
+		//NewFlushEffect(space),      // flush masks off the shape
 	})
 }
 
