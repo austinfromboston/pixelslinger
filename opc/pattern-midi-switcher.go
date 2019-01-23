@@ -23,7 +23,7 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 			"raver-plaid",
 			"shield",
 			"spatial-stripes",
-			"eye",
+			"moire",
 			"white",
 			"aqua",
 			"house-potty",
