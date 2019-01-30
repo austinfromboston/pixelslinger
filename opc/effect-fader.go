@@ -70,6 +70,9 @@ func MakeEffectFader(locations []float64) ByteThread {
 		}
 
 		lastFlashTime := 0.0
+        lastRadialTime := 0.0
+        lastSweepTime := 0.0
+        //lastSweepVelo := 0.0
 		lastTwinkleTime := 0.0
 		lastTwinklePad := 0.0
 		lastFadeToBlackPad := 0.0
@@ -87,8 +90,19 @@ func MakeEffectFader(locations []float64) ByteThread {
 
 			// blink regions
 			blinkArchPad := float64(midiState.KeyVolumes[config.BLINK_ARCH_PAD]) / 127.0
+            if blinkArchPad > 0 {lastRadialTime = t}
+            RADIALDUR := 1.2
+            radialLeft := math.Pow(t-lastRadialTime, 0.5-(0.5*blinkArchPad))
+            if radialLeft > RADIALDUR {radialLeft = 0}
 			blinkBackPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0
-
+            if blinkBackPad > 0 {
+                        lastSweepTime = t
+                        //lastSweepVelo = blinkBackPad
+                        }
+            
+            sweepLeft := math.Pow(t-lastSweepTime, 1)
+            if sweepLeft > RADIALDUR {sweepLeft = 0}
+            
 			// gain knob
 			gainKnob := float64(midiState.ControllerValues[config.GAIN_KNOB]) / 127.0
 			gain0 := colorutils.Clamp(colorutils.Remap(gainKnob, 0.75, 0.95, 0, 1), 0, 1)
@@ -122,7 +136,8 @@ func MakeEffectFader(locations []float64) ByteThread {
 				r := float64(bytes[ii*3+0]) / 255
 				g := float64(bytes[ii*3+1]) / 255
 				b := float64(bytes[ii*3+2]) / 255
-
+                
+                x := locations[ii*3+0]
 				z := locations[ii*3+2]
 
 				// zp ranges from 0 to 1 in the bounding box
@@ -170,15 +185,25 @@ func MakeEffectFader(locations []float64) ByteThread {
 				}
 
 				// blink regions
-				if blinkArchPad > 0 && ((160*1 <= ii && ii < 160*2.25) || (160*8 <= ii && ii < 160*9)) {
-					r = 1
-					g = 1
-					b = 1
+				if radialLeft > 0 {
+                    rad_const := max_coord_x * radialLeft
+                    rad := math.Sqrt(x*x + z*z)
+                    radial_amount := 1 - math.Pow(math.Abs(rad_const - rad),0.8)
+                    if radial_amount>0.9{
+					    r = radial_amount
+					    g = radial_amount
+					    b = radial_amount
+                    }
 				}
-				if blinkBackPad > 0 && ((160*3.5 <= ii && ii < 160*5) || (160*13 <= ii && ii < 160*14)) {
-					r = 1
-					g = 1
-					b = 1
+				if sweepLeft > 0 {
+                    theta_const := math.Pi * sweepLeft * 2    
+                    theta := math.Atan2(z, x)
+                    sweep_amount := 1 - math.Abs(theta_const - theta)
+                    if sweep_amount>0.5 {
+					r = sweep_amount
+					g = sweep_amount
+					b = sweep_amount
+                    }
 				}
 
 				// desaturation
