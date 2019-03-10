@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
 	"github.com/droundy/goopt"
 	"github.com/austinfromboston/pixelslinger/beaglebone"
 	"github.com/austinfromboston/pixelslinger/config"
