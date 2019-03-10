@@ -16,6 +16,7 @@ import (
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/opc"
+	"github.com/austinfromboston/pixelslinger/potty"
 	"github.com/pkg/profile"
 )
 
@@ -142,7 +143,15 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	bytesSentChan := make(chan []byte, 0)
 
 	// set up midi
-	midiMessageChan := midi.GetMidiMessageStream("/dev/midi1") // this launches the midi thread
+	midiPath := ""
+	if _, err := os.Stat("/dev/midi1"); err == nil {
+		// path/to/whatever exists
+		midiPath = "/dev/midi1"
+	} else if os.IsNotExist(err) {
+		//path/to/whatever does *not* exist
+		midiPath = "/dev/midi2"
+	}
+	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
 	midiState := midi.MidiState{}
 	// set initial values for controller knobs
 	//  (because the midi hardware only sends us values when the knobs move)

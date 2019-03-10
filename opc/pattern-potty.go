@@ -1,7 +1,7 @@
 package opc
 
 import (
-	"github.com/longears/pixelslinger/potty"
+	"github.com/austinfromboston/pixelslinger/potty"
 )
 
 // This obnoxious function only exists because ByteThread is an opc type

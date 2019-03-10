@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
 )
 
