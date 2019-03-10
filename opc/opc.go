@@ -6,14 +6,13 @@ package opc
 import (
 	"bufio"
 	"fmt"
+	"github.com/longears/pixelslinger/midi"
 	"math"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/longears/pixelslinger/midi"
 )
 
 //--------------------------------------------------------------------------------
@@ -44,10 +43,10 @@ func init() {
 		"test-gamma":      MakePatternTestGamma,
 		"test-rgb":        MakePatternTestRGB,
 		"white":           MakePatternWhite,
-		"aqua":            MakePatternAqua,
+		"aqua":			   MakePatternAqua,
 		"aquab":           MakePatternAquaB,
-		"house-potty":     MakePatternHousePotty,
-		"colorbox":        MakePatternSpatialColorBox,
+		"colorbox":		   MakePatternSpatialColorBox,
+		"archimedes":      MakePatternArchimedes,
 	}
 }
 

@@ -5,17 +5,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/droundy/goopt"
-	"github.com/austinfromboston/pixelslinger/beaglebone"
-	"github.com/austinfromboston/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
-	"github.com/austinfromboston/pixelslinger/opc"
-	"github.com/pkg/profile"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
+	"github.com/droundy/goopt"
+	"github.com/austinfromboston/pixelslinger/beaglebone"
+	"github.com/austinfromboston/pixelslinger/config"
+	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/opc"
+	"github.com/austinfromboston/pixelslinger/potty"
+	"github.com/pkg/profile"
 )
 
 const ONBOARD_LED_HEARTBEAT = 0
@@ -43,7 +44,7 @@ var ONCE = goopt.Flag([]string{"-o", "--once"}, []string{}, "quit after one fram
 // Add default ports if needed.
 // Read the layout file.
 // Return the number of pixels in the layout, the source and dest thread methods.
-func parseFlags() (nPixels int, sourceThread, effectThread, destThread opc.ByteThread) {
+func parseFlags() (nPixels int, sourceThread, effectThread, pottyEffectThread, destThread opc.ByteThread) {
 
 	// get sorted pattern names
 	patternNames := make([]string, len(opc.PATTERN_REGISTRY))
@@ -96,6 +97,7 @@ func parseFlags() (nPixels int, sourceThread, effectThread, destThread opc.ByteT
 
 	// choose effect thread method
 	effectThread = opc.MakeEffectFader(locations)
+	pottyEffectThread = potty.MakeEffectFaderPattern(locations)
 
 	// choose dest thread method
 	switch *DEST {
@@ -120,7 +122,7 @@ func parseFlags() (nPixels int, sourceThread, effectThread, destThread opc.ByteT
 // Run until timeToRun seconds have passed and return.  If timeToRun is 0, run forever.
 // Turn on the CPU profiler if timeToRun seconds > 0.
 // Limit the framerate to a max of fps unless fps is 0.
-func mainLoop(nPixels int, sourceThread, effectThread, destThread opc.ByteThread, fps float64, timeToRun float64) {
+func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destThread opc.ByteThread, fps float64, timeToRun float64) {
 	if timeToRun > 0 {
 		fmt.Printf("[mainLoop] Running for %f seconds with profiling turned on, pixels and network\n", timeToRun)
 		defer profile.Start(profile.CPUProfile).Stop()
@@ -134,12 +136,21 @@ func mainLoop(nPixels int, sourceThread, effectThread, destThread opc.ByteThread
 
 	bytesToFillChan := make(chan []byte, 0)
 	toEffectChan := make(chan []byte, 0)
+	toPottyEffectChan := make(chan []byte, 0)
 	bytesFilledChan := make(chan []byte, 0)
 	bytesToSendChan := make(chan []byte, 0)
 	bytesSentChan := make(chan []byte, 0)
 
 	// set up midi
-	midiMessageChan := midi.GetMidiMessageStream("/dev/midi1") // this launches the midi thread
+	midiPath := ""
+	if _, err := os.Stat("/dev/midi1"); err == nil {
+		// path/to/whatever exists
+		midiPath = "/dev/midi1"
+	} else if os.IsNotExist(err) {
+		//path/to/whatever does *not* exist
+		midiPath = "/dev/midi2"
+	}
+	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
 	midiState := midi.MidiState{}
 	// set initial values for controller knobs
 	//  (because the midi hardware only sends us values when the knobs move)
@@ -149,7 +160,8 @@ func mainLoop(nPixels int, sourceThread, effectThread, destThread opc.ByteThread
 
 	// launch the threads
 	go sourceThread(bytesToFillChan, toEffectChan, &midiState)
-	go effectThread(toEffectChan, bytesFilledChan, &midiState)
+	go effectThread(toEffectChan, toPottyEffectChan, &midiState)
+	go pottyEffectThread(toPottyEffectChan, bytesFilledChan, &midiState)
 	go destThread(bytesToSendChan, bytesSentChan, &midiState)
 
 	// main loop
@@ -235,6 +247,6 @@ func main() {
 	fmt.Println("--------------------------------------------------------------------------------\\")
 	defer fmt.Println("--------------------------------------------------------------------------------/")
 
-	nPixels, sourceThread, effectThread, destThread := parseFlags()
-	mainLoop(nPixels, sourceThread, effectThread, destThread, float64(*FPS), float64(*SECONDS))
+	nPixels, sourceThread, effectThread, pottyEffectThread, destThread := parseFlags()
+	mainLoop(nPixels, sourceThread, effectThread, pottyEffectThread, destThread, float64(*FPS), float64(*SECONDS))
 }
