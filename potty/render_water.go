@@ -3,6 +3,14 @@ package potty
 import (
 	"github.com/longears/pixelslinger/colorutils"
 	"github.com/longears/pixelslinger/midi"
+	colorful "github.com/lucasb-eyer/go-colorful"
+)
+
+var (
+	LightCyan  = colorful.LinearRgb(0.6, 0.7, 0.8)
+	DarkCyan   = colorful.LinearRgb(0.1, 0.4, 0.8)
+	Aquamarine = colorful.LinearRgb(0.1, 0.25, 0.75)
+	Teal       = colorful.LinearRgb(0.4, 0.7, 0.55)
 )
 
 type WaterEffect struct {
@@ -22,9 +30,10 @@ func (w *WaterEffect) Render(midiState *midi.MidiState, t float64) {
 		s2 := colorutils.Cos(p.Z*0.2, t/10, 1, 0.0, 1.0)
 		s4 := 0.3*s1 + 0.7*s3
 
-		p.Blend(&LightCyan, s1)
-		p.Blend(&DarkCyan, s2)
-		p.Blend(&Aquamarine, s3)
-		p.Blend(&Teal, s4)
+		p.Color = Black
+		p.Color = p.Color.BlendHsv(LightCyan, s1).Clamped()
+		p.Color = p.Color.BlendHsv(DarkCyan, s2).Clamped()
+		p.Color = p.Color.BlendHsv(Aquamarine, s3).Clamped()
+		p.Color = p.Color.BlendHsv(Teal, s4).Clamped()
 	}
 }

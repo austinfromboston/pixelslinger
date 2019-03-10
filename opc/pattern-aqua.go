@@ -39,9 +39,9 @@ func MakePatternAqua(locations []float64) ByteThread {
 				b:= 0.0
 
 				// number of colors
-				nc := 2.0
+				nc := 4.0
 				// bubble strength (inverse, greater is less bubbles)
-				bs := 3.0
+				bs := 2.0
 
 				//lightcyan
 				r += (0.875*s1) / nc
