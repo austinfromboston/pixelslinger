@@ -15,10 +15,11 @@ import (
 const (physicsUpdateIntervalMiliSeconds = 25
 	physicsUpdateIntervalSeconds = physicsUpdateIntervalMiliSeconds / 1e3
 	ballDisplayRadMin = 0.08
-	paddleLength = 0.1
+	paddleLength = 0.5
 	halfPaddleLength = paddleLength / 2
 	leftTheta=math.Pi / 20.0
-	rightTheta=math.Pi * 19.0/20.0)
+	rightTheta=math.Pi * 19.0/20.0
+	paddleActiveLightUpSecs = 1)
 
 
 type aState struct {
@@ -28,6 +29,8 @@ type aState struct {
 	ballHoriz float64
 	leftPaddlePos float64 // the percentage it is from the bottom to top
 	rightPaddlePos float64
+	leftPaddleHitTime float64
+	rightPaddleHitTime float64
 }
 
 func distanceToPaddle(x float64, y float64, paddlePos float64, paddleAngle float64) (float64, float64, float64){
@@ -41,7 +44,35 @@ func paddleXYfromPos(paddlePos float64, paddleAngle float64) (float64, float64) 
 	return 2 * paddlePos * math.Cos(paddleAngle), 2 * paddlePos * math.Sin(paddleAngle)
 }
 
-func detectBoundaryCollision(state aState) aState{
+func paddleHitCheckRoutine(state aState, t float64, r float64, leftRight string) aState {
+	paddlePos := state.leftPaddlePos
+	sideTheta := leftTheta
+	paddleHitTime := &state.leftPaddleHitTime
+	if leftRight == "right"{
+		paddlePos = state.rightPaddlePos
+		sideTheta = rightTheta
+		paddleHitTime = &state.rightPaddleHitTime
+	}
+	_, paddleY, dtp := distanceToPaddle(state.ballPosX, state.ballPosY, paddlePos, sideTheta)
+	if dtp < halfPaddleLength{
+		//fmt.Println("hit paddle")
+		reflectUpDown := 1.0
+		if paddleY > state.ballPosY { reflectUpDown = -1.0} else {reflectUpDown = 1.0}
+		reflection := reflectUpDown * (dtp*0.1 / halfPaddleLength)
+		state.ballHoriz = state.ballHoriz * -1.0
+		state.ballVert += reflection
+		*paddleHitTime = t
+	}else {
+		// didnt hit paddle
+		state.ballHoriz = state.ballHoriz * -1.0
+	}
+
+	state.ballPosX = r*math.Cos(sideTheta)
+	//fmt.Println("left collision")
+	return state
+}
+
+func detectBoundaryCollision(state aState, t float64) aState{
 	xsq := math.Pow(state.ballPosX, 2)
 	ysq := math.Pow(state.ballPosY, 2)
 	r := math.Sqrt(xsq+ysq)
@@ -64,25 +95,12 @@ func detectBoundaryCollision(state aState) aState{
 	}
 	// check left side theta<=-pi/20
 	if (theta <= leftTheta) {
-		_, paddleY, dtp := distanceToPaddle(state.ballPosX, state.ballPosY, state.leftPaddlePos, leftTheta)
-		if dtp < paddleLength {
-			reflectUpDown := 1
-			if paddleY > state.ballPosY { reflectUpDown = -1}
-			reflection := reflectUpDown * (dtp / halfPaddleLength)
-			state.ballHoriz = state.ballHoriz * -1.0
-			state.ballVert += reflection
-		}
-		state.ballPosX = r*math.Cos(math.Pi/20)
-		//fmt.Println("left collision")
+		state = paddleHitCheckRoutine(state, t, r, "left")
 		return state
 	}
 	// check right side theta>=pi/20
 	if (theta >= rightTheta){
-		state.ballHoriz = state.ballHoriz * -1.0
-		state.ballPosX = r*math.Cos(math.Pi* 19.0/20.0)
-		state.ballPosY = r*math.Sin(math.Pi* 19.0/20.0)
-		//fmt.Println("right collision")
-		//fmt.Println(state)
+		state = paddleHitCheckRoutine(state, t, r,  "right")
 		return state
 	}
 	return state
@@ -112,12 +130,24 @@ func simulateBall(state aState) aState{
 	return state
 }
 
+func removePaddleActives(state aState, t float64) aState{
+	if t - state.leftPaddleHitTime > paddleActiveLightUpSecs{
+		state.leftPaddleHitTime = -1
+	}
+	if t - state.rightPaddleHitTime> paddleActiveLightUpSecs{
+		state.rightPaddleHitTime = -1
+	}
+
+	return state
+}
 
 func updatePhysics (t float64, state aState) aState{
 	//fmt.Println("new update")
 	//fmt.Print(state)
-	state = detectBoundaryCollision(state)
+	state = detectBoundaryCollision(state, t)
 	state = simulateBall(state)
+
+	state = removePaddleActives(state, t)
 	return state
 }
 
@@ -128,7 +158,7 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 
 	// get bounding box
 
-	state := aState{ballPosY:1.0,
+	state := aState{ballPosY:0.1,
 		ballPosX:1.0,
 		ballHoriz:1.0,
 		ballVert:1.0,
@@ -207,15 +237,23 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				// render paddle
 				theta := math.Atan2(y, x)
 				if (theta < leftTheta+0.01){
-					_, _, dtp := distanceToPaddle(x, y, state.rightPaddlePos, rightTheta)
-					if dtp < paddleLength{
-						g=1
+					_, _, dtp := distanceToPaddle(x, y, state.leftPaddlePos, leftTheta)
+					if dtp < halfPaddleLength{
+						if state.leftPaddleHitTime > 0{
+							r=1
+						}else{
+							g=1
+						}
 					}
 				}
 				if (theta > rightTheta-0.01){
 					_, _, dtp := distanceToPaddle(x, y, state.rightPaddlePos, rightTheta)
-					if dtp < paddleLength{
-						b=1
+					if dtp < halfPaddleLength{
+						if state.rightPaddleHitTime > 0{
+							r=1
+						}else{
+							b=1
+						}
 					}
 				}
 
