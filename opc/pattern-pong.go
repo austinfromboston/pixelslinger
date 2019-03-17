@@ -8,6 +8,8 @@ import (
 	"math"
 	"time"
 
+	"fmt"
+	"github.com/austinfromboston/pixelslinger/config"
 )
 
 // Configs
@@ -58,9 +60,10 @@ func paddleHitCheckRoutine(state aState, t float64, r float64, leftRight string)
 		//fmt.Println("hit paddle")
 		reflectUpDown := 1.0
 		if paddleY > state.ballPosY { reflectUpDown = -1.0} else {reflectUpDown = 1.0}
-		reflection := reflectUpDown * (dtp*0.1 / halfPaddleLength)
+		reflection := reflectUpDown * (dtp / halfPaddleLength)
 		state.ballHoriz = state.ballHoriz * -1.0
-		state.ballVert += reflection
+		fmt.Println(reflection, state.ballVert)
+		state.ballVert = reflection
 		*paddleHitTime = t
 	}else {
 		// didnt hit paddle
@@ -94,12 +97,12 @@ func detectBoundaryCollision(state aState, t float64) aState{
 		return state
 	}
 	// check left side theta<=-pi/20
-	if (theta <= leftTheta) {
+	if (theta < leftTheta) {
 		state = paddleHitCheckRoutine(state, t, r, "left")
 		return state
 	}
 	// check right side theta>=pi/20
-	if (theta >= rightTheta){
+	if (theta > rightTheta){
 		state = paddleHitCheckRoutine(state, t, r,  "right")
 		return state
 	}
@@ -256,7 +259,13 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 						}
 					}
 				}
+				// paddle updates
 
+				player1Knob := (float64(midiState.ControllerValues[config.MORPH_KNOB])/127)
+				player2Knob := (float64(midiState.ControllerValues[config.HUE_KNOB])/127)
+				fmt.Println(midiState.ControllerValues[config.MORPH_KNOB])
+				state.rightPaddlePos = player1Knob
+				state.leftPaddlePos = player2Knob
 
 				//fmt.Println(r)
 				bytes[ii*3+0] = colorutils.FloatToByte(r)
