@@ -15,8 +15,8 @@ import (
 const (
 	IMG_DIR = "images/77m"
 	NUM_LAYERS = 4
-	LAYER_CHANGE_SECS = 4
-	LAYER_GAIN_BASELINE = 0.0
+	LAYER_CHANGE_SECS = 10
+	LAYER_GAIN_BASELINE = 0.1
 	)
 
 var (
