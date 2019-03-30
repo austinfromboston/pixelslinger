@@ -6,7 +6,6 @@ package opc
 
 import (
 	"time"
-
 	"github.com/longears/pixelslinger/colorutils"
 	"github.com/longears/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
@@ -28,6 +27,7 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 			"aqua",
 			"house-potty",
             "archimedes",
+            "pong",
 		}
 
 		// channels for communication with subpattern

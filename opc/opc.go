@@ -48,6 +48,7 @@ func init() {
 		"colorbox":		   MakePatternSpatialColorBox,
 		"archimedes":      MakePatternArchimedes,
 		"pong":		   	MakePatternPolarPong,
+		"77m":          MakePattern77Million,
 	}
 }
 

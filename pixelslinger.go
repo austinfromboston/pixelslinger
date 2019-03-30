@@ -15,8 +15,8 @@ import (
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/longears/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/opc"
-	"github.com/austinfromboston/pixelslinger/potty"
 	"github.com/pkg/profile"
+	"github.com/austinfromboston/pixelslinger/potty"
 )
 
 const ONBOARD_LED_HEARTBEAT = 0
@@ -150,6 +150,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 		//path/to/whatever does *not* exist
 		midiPath = "/dev/midi2"
 	}
+	fmt.Println("midiPath is", midiPath)
 	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
 	midiState := midi.MidiState{}
 	// set initial values for controller knobs
@@ -157,6 +158,8 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	for knob, defaultVal := range config.DEFAULT_KNOB_VALUES {
 		midiState.ControllerValues[knob] = defaultVal
 	}
+	fmt.Println(midiState)
+
 
 	// launch the threads
 	go sourceThread(bytesToFillChan, toEffectChan, &midiState)

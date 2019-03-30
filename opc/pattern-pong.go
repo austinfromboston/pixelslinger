@@ -7,9 +7,8 @@ import (
 	"github.com/longears/pixelslinger/midi"
 	"math"
 	"time"
-
 	"fmt"
-	"github.com/austinfromboston/pixelslinger/config"
+	"github.com/longears/pixelslinger/config"
 )
 
 // Configs
@@ -21,7 +20,8 @@ const (physicsUpdateIntervalMiliSeconds = 25
 	halfPaddleLength = paddleLength / 2
 	leftTheta=math.Pi / 20.0
 	rightTheta=math.Pi * 19.0/20.0
-	paddleActiveLightUpSecs = 1)
+	paddleActiveLightUpSecs = 1
+	paddleControlSensitivity = 0.0001)
 
 
 type aState struct {
@@ -33,6 +33,10 @@ type aState struct {
 	rightPaddlePos float64
 	leftPaddleHitTime float64
 	rightPaddleHitTime float64
+	gamePhase string // are we in demo-mode, inbetween "games", in a "game" at the end of a set.
+	lastPreGrameStart float64
+	lastGameStart float64
+	lastMatchStart float64
 }
 
 func distanceToPaddle(x float64, y float64, paddlePos float64, paddleAngle float64) (float64, float64, float64){
@@ -109,6 +113,29 @@ func detectBoundaryCollision(state aState, t float64) aState{
 	return state
 }
 
+func handlePlayerInput(state aState, midiState *midi.MidiState) aState {
+	// Was thinking about having left and right buttons rather than scrollers.
+	//
+	//leftPlayerLeftwardAmt := float64(midiState.KeyVolumes[midi.LPD8_PAD1]) / 127.0 * paddleControlSensitivity
+	//leftPlayerRightwardAmt := float64(midiState.KeyVolumes[midi.LPD8_PAD2]) / 127.0 * paddleControlSensitivity
+	//rightPlayerLeftwardAmt := float64(midiState.KeyVolumes[midi.LPD8_PAD3]) / 127.0 * paddleControlSensitivity
+	//rightPlayerRightwardAmt := float64(midiState.KeyVolumes[midi.LPD8_PAD4]) / 127.0 * paddleControlSensitivity
+	//
+	////fmt.Println(midiState.KeyVolumes[midi.LPD8_PAD1])
+	//state.rightPaddlePos =  state.rightPaddlePos - rightPlayerLeftwardAmt + rightPlayerRightwardAmt
+	//state.leftPaddlePos = state.leftPaddlePos - leftPlayerLeftwardAmt + leftPlayerRightwardAmt
+	//
+	//if state.rightPaddlePos > 1 {state.rightPaddlePos = 1}
+	//if state.leftPaddlePos > 1 {state.leftPaddlePos = 1}
+	//if state.rightPaddlePos < 0 {state.rightPaddlePos = 0}
+	//if state.leftPaddlePos < 0 {state.leftPaddlePos = 0}
+
+	state.leftPaddlePos = float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0
+	state.rightPaddlePos = float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
+
+	return state
+}
+
 func simulateBall(state aState) aState{
 	//fmt.Print(state)
 	xsq := math.Pow(state.ballPosX, 2)
@@ -149,17 +176,11 @@ func updatePhysics (t float64, state aState) aState{
 	//fmt.Print(state)
 	state = detectBoundaryCollision(state, t)
 	state = simulateBall(state)
-
 	state = removePaddleActives(state, t)
+
 	return state
 }
-
-
-
 func MakePatternPolarPong(locations []float64) ByteThread {
-
-
-	// get bounding box
 
 	state := aState{ballPosY:0.1,
 		ballPosX:1.0,
@@ -167,40 +188,6 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 		ballVert:1.0,
 	leftPaddlePos:0.5,
 	rightPaddlePos:0.5}
-	// paddleShapefn
-	//const (halfPaddleWidth = 0.2
-	//       angleBetweenBlades = math.Pi / 20)
-	//var angleBetweenBlades float64 = math.Pi / 20
-	//func paddleShape(paddleX float64, paddleY float64, leftSide bool) func(x float64, y float64) bool{
-	//	angle := angleBetweenBlades
-	//	if leftSide {
-	//		angle = -1 * angle
-	//	}
-	//	return -1*halfPaddleWidth < (math.Tan(angle) * x) - y
-	//}
-	//
-	// ballShapefn
-
-	// State
-	// ballRenderlocations
-	// paddlePosition (1 and 2)
-	// paddleRenderlocations
-
-	// Functions
-	// ballPath
-	// collision detection (changes ball path)
-	// calculate PaddlePostions
-
-	// "Main loop"
-	// getMidiPositions
-	// updatePhysics (every pixel, or every X nanosec)
-	// // function of (midiPositons, ballPath, t)
-	////// update paddlePositions
-	///////update ballPosition
-	///////do colisiondection
-	////////// if collidedchangeBallpath
-	///////update ballandpaddlelocations
-	///// renderPaddles and Ball via lookup
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 		for bytes := range bytesIn {
@@ -219,6 +206,9 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 					//fmt.Print("UPDATE")
 					state = updatePhysics(t, state)
 					}
+				//fmt.Println(float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0)
+				state = handlePlayerInput(state, midiState)
+
 				x := locations[ii*3+0]
 				y := locations[ii*3+1]
 				z := locations[ii*3+2]
@@ -237,35 +227,16 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 					r=1;g=1;b=1
 				}
 
-				// render paddle
-				theta := math.Atan2(y, x)
-				if (theta < leftTheta+0.01){
-					_, _, dtp := distanceToPaddle(x, y, state.leftPaddlePos, leftTheta)
-					if dtp < halfPaddleLength{
-						if state.leftPaddleHitTime > 0{
-							r=1
-						}else{
-							g=1
-						}
-					}
-				}
-				if (theta > rightTheta-0.01){
-					_, _, dtp := distanceToPaddle(x, y, state.rightPaddlePos, rightTheta)
-					if dtp < halfPaddleLength{
-						if state.rightPaddleHitTime > 0{
-							r=1
-						}else{
-							b=1
-						}
-					}
-				}
-				// paddle updates
+				//spiral emanating
+				spiralAmt := Spiral(x-state.ballPosX,y-state.ballPosY,t, 0.1, 12, 1, 0.15, 5)
+				r+=spiralAmt
+				g+=spiralAmt
+				b+=spiralAmt
 
-				player1Knob := (float64(midiState.ControllerValues[config.MORPH_KNOB])/127)
-				player2Knob := (float64(midiState.ControllerValues[config.HUE_KNOB])/127)
-				fmt.Println(midiState.ControllerValues[config.MORPH_KNOB])
-				state.rightPaddlePos = player1Knob
-				state.leftPaddlePos = player2Knob
+				// floating green lattice
+				if (colorutils.PosMod(x, 0.35)<=0.035 && math.Abs(x)>=0.25) || (colorutils.PosMod(y, 0.35)<=0.035 && math.Abs(y)>=0.25){
+					g+=0.25
+				}
 
 				//fmt.Println(r)
 				bytes[ii*3+0] = colorutils.FloatToByte(r)
