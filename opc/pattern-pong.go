@@ -16,12 +16,14 @@ import (
 const (physicsUpdateIntervalMiliSeconds = 25
 	physicsUpdateIntervalSeconds = physicsUpdateIntervalMiliSeconds / 1e3
 	ballDisplayRadMin = 0.08
-	paddleLength = 0.5
+	paddleLength = 0.25
 	halfPaddleLength = paddleLength / 2
 	leftTheta=math.Pi / 20.0
 	rightTheta=math.Pi * 19.0/20.0
 	paddleActiveLightUpSecs = 1
-	paddleControlSensitivity = 0.0001)
+	paddleControlSensitivity = 0.0001
+	PLAY_TO_SCORE = 11
+	DISPLAY_SCORE_SECONDS = 3)
 
 
 type aState struct {
@@ -33,10 +35,12 @@ type aState struct {
 	rightPaddlePos float64
 	leftPaddleHitTime float64
 	rightPaddleHitTime float64
-	gamePhase string // are we in demo-mode, inbetween "games", in a "game" at the end of a set.
+	matchPhase string// are we in pre, game, score, or post =
 	lastPreGrameStart float64
 	lastGameStart float64
 	lastMatchStart float64
+	lastDisplayStart float64
+	score [2]int // the left score and the right score
 }
 
 func distanceToPaddle(x float64, y float64, paddlePos float64, paddleAngle float64) (float64, float64, float64){
@@ -54,11 +58,14 @@ func paddleHitCheckRoutine(state aState, t float64, r float64, leftRight string)
 	paddlePos := state.leftPaddlePos
 	sideTheta := leftTheta
 	paddleHitTime := &state.leftPaddleHitTime
+	scoringPos := 0
 	if leftRight == "right"{
 		paddlePos = state.rightPaddlePos
 		sideTheta = rightTheta
 		paddleHitTime = &state.rightPaddleHitTime
+		scoringPos = 1
 	}
+
 	_, paddleY, dtp := distanceToPaddle(state.ballPosX, state.ballPosY, paddlePos, sideTheta)
 	if dtp < halfPaddleLength{
 		//fmt.Println("hit paddle")
@@ -72,6 +79,9 @@ func paddleHitCheckRoutine(state aState, t float64, r float64, leftRight string)
 	}else {
 		// didnt hit paddle
 		state.ballHoriz = state.ballHoriz * -1.0
+		// scoring points
+		state.score[scoringPos] += 1
+		state.matchPhase = "score"
 	}
 
 	state.ballPosX = r*math.Cos(sideTheta)
@@ -130,7 +140,7 @@ func handlePlayerInput(state aState, midiState *midi.MidiState) aState {
 	//if state.rightPaddlePos < 0 {state.rightPaddlePos = 0}
 	//if state.leftPaddlePos < 0 {state.leftPaddlePos = 0}
 
-	state.leftPaddlePos = float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0
+	state.leftPaddlePos = 1-float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0 //1- value to compensate for mirror effect
 	state.rightPaddlePos = float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
 
 	return state
@@ -171,6 +181,27 @@ func removePaddleActives(state aState, t float64) aState{
 	return state
 }
 
+func displayScore(t float64, state aState) aState{
+	fmt.Println("score", state.score)
+	// if last display is unset then we are stating to animate
+	if state.lastDisplayStart == -1{
+		state.lastDisplayStart = t
+	}
+
+	// end of animation
+	if t - state.lastDisplayStart > DISPLAY_SCORE_SECONDS{
+		state.lastDisplayStart = -1
+		// end routine
+		if state.score[0]>=PLAY_TO_SCORE ||  state.score[1]>=PLAY_TO_SCORE{
+			state.matchPhase = "post" // victory condition
+		} else{
+			state.matchPhase = "game"
+		}
+	}
+	fmt.Println("scoredisplay", state.score)
+	return state
+}
+
 func updatePhysics (t float64, state aState) aState{
 	//fmt.Println("new update")
 	//fmt.Print(state)
@@ -180,14 +211,30 @@ func updatePhysics (t float64, state aState) aState{
 
 	return state
 }
+
+func phaseDispatcher(t float64, state aState) aState{
+	//fmt.Println("phase", state)
+	switch {
+	case state.matchPhase == "game":
+		return 	updatePhysics(t, state)
+	case state.matchPhase == "score":
+		return displayScore(t, state)
+	default:
+		return  state
+	}
+}
+
+
 func MakePatternPolarPong(locations []float64) ByteThread {
 
-	state := aState{ballPosY:0.1,
-		ballPosX:1.0,
+	state := aState{ballPosY:1.0,
+		ballPosX:0.0,
 		ballHoriz:1.0,
 		ballVert:1.0,
 	leftPaddlePos:0.5,
-	rightPaddlePos:0.5}
+	rightPaddlePos:0.5,
+	score:[2]int{0,0},
+	matchPhase:"game"}
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 		for bytes := range bytesIn {
@@ -204,7 +251,7 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				//fmt.Print("***", t, physicsUpdateInterval, frameness)
 				if frameness <= 1.0 {
 					//fmt.Print("UPDATE")
-					state = updatePhysics(t, state)
+					state = phaseDispatcher(t, state)
 					}
 				//fmt.Println(float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0)
 				state = handlePlayerInput(state, midiState)
@@ -236,6 +283,28 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				// floating green lattice
 				if (colorutils.PosMod(x, 0.35)<=0.035 && math.Abs(x)>=0.25) || (colorutils.PosMod(y, 0.35)<=0.035 && math.Abs(y)>=0.25){
 					g+=0.25
+				}
+
+				theta := math.Atan2(y, x)
+				if (theta < leftTheta+0.01){
+					_, _, dtp := distanceToPaddle(x, y, state.leftPaddlePos, leftTheta)
+					if dtp < paddleLength{
+						if state.leftPaddleHitTime>0.0{
+							g=1; b=1
+						}else{
+							g=1
+						}
+					}
+				}
+				if (theta > rightTheta-0.01){
+					_, _, dtp := distanceToPaddle(x, y, state.rightPaddlePos, rightTheta)
+					if dtp < paddleLength{
+						if state.rightPaddleHitTime>0.0{
+							b=1; g=1
+						} else {
+							b=1
+						}
+					}
 				}
 
 				//fmt.Println(r)

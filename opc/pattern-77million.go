@@ -11,31 +11,40 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"github.com/lucasb-eyer/go-colorful"
+	"github.com/austinfromboston/pixelslinger/config"
+	"math"
 )
 const (
 	IMG_DIR = "images/77m"
 	NUM_LAYERS = 4
-	LAYER_CHANGE_SECS = 10
-	LAYER_GAIN_BASELINE = 0.1
+	LAYER_CHANGE_SECS_MAX=120
 	)
 
 var (
 	layerToChange = 0
 	lastTransition = 0.0 //t in seconds
-	)
+	LAYER_CHANGE_SECS = 15.0
+)
+
+func inList(imageName string, currImages [NUM_LAYERS]string) bool {
+	for currPos := range currImages {
+		currFile := currImages[currPos]
+		if currFile == imageName {
+			return true
+		}
+	}
+	return false
+}
 
 func getNextImage(allImageFiles []string, currImages [NUM_LAYERS]string) string {
 	nextFile := ""
 	for len(nextFile) == 0 {
 		nextTryPos := rand.Intn(len(allImageFiles))
+		//fmt.Println("lenallimages nexttrypos", len(allImageFiles), nextTryPos)
 		candNextFile := allImageFiles[nextTryPos]
-		for currPos := range currImages {
-			currFile := currImages[currPos]
-			//fmt.Println("comparing:", candNextFile, currFile)
-			if currFile == candNextFile {
-				break
-			}
-		nextFile = candNextFile
+		if !inList(candNextFile, currImages){
+			nextFile = candNextFile
 		}
 	}
 	return nextFile
@@ -43,6 +52,7 @@ func getNextImage(allImageFiles []string, currImages [NUM_LAYERS]string) string 
 
 func MakePattern77Million(locations []float64) ByteThread {
 	rand.Seed(time.Now().UnixNano())
+	//rand.Seed(44)
 	allImageFiles := []string{}
 	files, err := ioutil.ReadDir(IMG_DIR)
 	if err != nil {
@@ -111,25 +121,35 @@ func MakePattern77Million(locations []float64) ByteThread {
 				g := 0.0
 				b := 0.0
 
-
+				speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
+				LAYER_CHANGE_SECS = speedKnob*LAYER_CHANGE_SECS_MAX
+				xyColor := colorful.Color{r, g, b}
 				for li:=0; li<NUM_LAYERS; li++{
 					// the image seems to be flipped on both axes so mutliplying by -1
 					offset := float64(li)/float64(NUM_LAYERS)
 					//fmt.Println("Offeset for ", li ,"is", offset)
-					currAlphas[li] = colorutils.Cos(t, offset, LAYER_CHANGE_SECS, 0, 1)
+
+
+					// want to clip this slightly so that we have transitions in and out but also remains constant for a while
+					alphaCos := colorutils.Cos(t, offset, LAYER_CHANGE_SECS, 0, 1.0)
+					if alphaCos >= 0.5 {alphaCos=0.5}
+					currAlphas[li] = alphaCos
 					lr, lg, lb := layerImages[li].getInterpolatedColor(-1*x_norm, -1*y_norm, "tile")
 					// TODO blend these layers better
-					r += currAlphas[li]*lr + LAYER_GAIN_BASELINE
-					g += currAlphas[li]*lg + LAYER_GAIN_BASELINE
-					b += currAlphas[li]*lb + LAYER_GAIN_BASELINE
+					layerColor := colorful.Color{lr, lg, lb}
+					xyColor = xyColor.BlendRgb(layerColor, currAlphas[li]).Clamped()
+					//fmt.Println("li, currAlpha, layer color, xycolor", li, currAlphas[li], layerColor, xyColor)
+					//r += currAlphas[li]*lr + LAYER_GAIN_BASELINE
+					//g += currAlphas[li]*lg + LAYER_GAIN_BASELINE
+					//b += currAlphas[li]*lb + LAYER_GAIN_BASELINE
 
 					// switch out the image if the alpha is low and we haven't changed it recently
 					lastLayerTransition := t-lastImageSwaps[li]
 					if (currAlphas[li] < 0.001)  && ( lastLayerTransition> LAYER_CHANGE_SECS){
-							fmt.Println("last layer trans", lastLayerTransition)
-							fmt.Println(currAlphas)
+							//fmt.Println("last layer trans", lastLayerTransition)
+							//fmt.Println(currAlphas)
 							nextImage := getNextImage(allImageFiles, currImageFiles)
-							fmt.Println(nextImage)
+							fmt.Println("curr images, next image,", currImageFiles, nextImage)
 							nextImageFull := IMG_DIR+"/"+nextImage
 							layerImages[li].populateFromImage(nextImageFull)
 							currImageFiles[li] = nextImage
@@ -138,11 +158,13 @@ func MakePattern77Million(locations []float64) ByteThread {
 
 					}
 				}
+				if math.Mod(t, 1.0)<0.01{
+					fmt.Println("acurrAlphas", currAlphas)
+				}
 
-
-				bytes[ii*3+0] = colorutils.FloatToByte(r)
-				bytes[ii*3+1] = colorutils.FloatToByte(g)
-				bytes[ii*3+2] = colorutils.FloatToByte(b)
+				bytes[ii*3+0] = colorutils.FloatToByte(xyColor.R)
+				bytes[ii*3+1] = colorutils.FloatToByte(xyColor.G)
+				bytes[ii*3+2] = colorutils.FloatToByte(xyColor.B)
 
 				//--------------------------------------------------------------------------------
 			}
