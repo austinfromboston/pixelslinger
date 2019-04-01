@@ -22,8 +22,8 @@ const (physicsUpdateIntervalMiliSeconds = 25
 	rightTheta=math.Pi * 19.0/20.0
 	paddleActiveLightUpSecs = 1
 	paddleControlSensitivity = 0.0001
-	PLAY_TO_SCORE = 11
-	DISPLAY_SCORE_SECONDS = 3)
+	PLAY_TO_SCORE = 9
+	DISPLAY_SCORE_SECONDS = 1.2)
 
 
 type aState struct {
@@ -41,6 +41,8 @@ type aState struct {
 	lastMatchStart float64
 	lastDisplayStart float64
 	score [2]int // the left score and the right score
+	leftScoreAngle float64// float64
+	rightScoreAngle float64// flaoat64
 }
 
 func distanceToPaddle(x float64, y float64, paddlePos float64, paddleAngle float64) (float64, float64, float64){
@@ -120,7 +122,9 @@ func detectBoundaryCollision(state aState, t float64) aState{
 		state = paddleHitCheckRoutine(state, t, r,  "right")
 		return state
 	}
+
 	return state
+
 }
 
 func handlePlayerInput(state aState, midiState *midi.MidiState) aState {
@@ -182,7 +186,6 @@ func removePaddleActives(state aState, t float64) aState{
 }
 
 func displayScore(t float64, state aState) aState{
-	fmt.Println("score", state.score)
 	// if last display is unset then we are stating to animate
 	if state.lastDisplayStart == -1{
 		state.lastDisplayStart = t
@@ -196,9 +199,23 @@ func displayScore(t float64, state aState) aState{
 			state.matchPhase = "post" // victory condition
 		} else{
 			state.matchPhase = "game"
+			// reset the ball
+			state.ballPosY = 1
+			state.ballPosX = 0
 		}
 	}
-	fmt.Println("scoredisplay", state.score)
+
+	// calculate the score angles
+	// how far away through the display phase
+	displayDuration :=  (t - state.lastDisplayStart) / float64(DISPLAY_SCORE_SECONDS-1)
+	if displayDuration > 1{ displayDuration = 1}
+
+	rightScoreAngleMax := math.Pi - (math.Pi/20.0 * float64(state.score[0]))
+	state.rightScoreAngle = math.Pi - ((math.Pi - rightScoreAngleMax) * displayDuration)
+
+	leftScoreAngleMax := math.Pi/20.0 * float64(state.score[1])
+	state.leftScoreAngle = leftScoreAngleMax * displayDuration
+
 	return state
 }
 
@@ -234,7 +251,8 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 	leftPaddlePos:0.5,
 	rightPaddlePos:0.5,
 	score:[2]int{0,0},
-	matchPhase:"game"}
+	matchPhase:"game",
+	lastDisplayStart:-1}
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 		for bytes := range bytesIn {
@@ -275,17 +293,33 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				}
 
 				//spiral emanating
-				spiralAmt := Spiral(x-state.ballPosX,y-state.ballPosY,t, 0.1, 12, 1, 0.15, 5)
-				r+=spiralAmt
-				g+=spiralAmt
-				b+=spiralAmt
+				if state.matchPhase == "game" || state.matchPhase == "score"{
+					spiralAmt := Spiral(x-state.ballPosX,y-state.ballPosY,t, 0.1, 12, 1, 0.15, 5)
+					r+=spiralAmt
+					g+=spiralAmt
+					b+=spiralAmt
+				}
 
 				// floating green lattice
-				if (colorutils.PosMod(x, 0.35)<=0.035 && math.Abs(x)>=0.25) || (colorutils.PosMod(y, 0.35)<=0.035 && math.Abs(y)>=0.25){
+				if (colorutils.PosMod(x, 0.35)<=0.035 && math.Abs(x)>=0.25) ||
+					(colorutils.PosMod(y, 0.35)<=0.035 && math.Abs(y)>=0.25) {
 					g+=0.25
 				}
 
 				theta := math.Atan2(y, x)
+
+				// render score
+				if (theta > state.rightScoreAngle - 0.01) && (state.matchPhase == "score"){
+					//fmt.Println("right left thetas", state.rightScoreAngle, state.leftScoreAngle)
+					b+=0.75
+				}
+
+				if (theta < state.leftScoreAngle+0.01) && (state.matchPhase == "score"){
+					g+=0.75
+				}
+
+
+				// render paddles
 				if (theta < leftTheta+0.01){
 					_, _, dtp := distanceToPaddle(x, y, state.leftPaddlePos, leftTheta)
 					if dtp < paddleLength{

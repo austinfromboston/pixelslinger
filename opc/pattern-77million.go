@@ -13,7 +13,6 @@ import (
 	"time"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/austinfromboston/pixelslinger/config"
-	"math"
 )
 const (
 	IMG_DIR = "images/77m"
@@ -158,9 +157,9 @@ func MakePattern77Million(locations []float64) ByteThread {
 
 					}
 				}
-				if math.Mod(t, 1.0)<0.01{
-					fmt.Println("acurrAlphas", currAlphas)
-				}
+				//if math.Mod(t, 1.0)<0.01{
+				//	fmt.Println("acurrAlphas", currAlphas)
+				//}
 
 				bytes[ii*3+0] = colorutils.FloatToByte(xyColor.R)
 				bytes[ii*3+1] = colorutils.FloatToByte(xyColor.G)
