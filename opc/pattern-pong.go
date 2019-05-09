@@ -23,7 +23,10 @@ const (physicsUpdateIntervalMiliSeconds = 25
 	paddleActiveLightUpSecs = 1
 	paddleControlSensitivity = 0.0001
 	PLAY_TO_SCORE = 9
-	DISPLAY_SCORE_SECONDS = 1.2)
+	DISPLAY_SCORE_SECONDS = 1.2
+	DISPLAY_POST_SECONDS = 5
+	SPIRAL_DISPLAY=0.6
+	)
 
 
 type aState struct {
@@ -40,6 +43,7 @@ type aState struct {
 	lastGameStart float64
 	lastMatchStart float64
 	lastDisplayStart float64
+	lastPostStart float64
 	score [2]int // the left score and the right score
 	leftScoreAngle float64// float64
 	rightScoreAngle float64// flaoat64
@@ -219,6 +223,20 @@ func displayScore(t float64, state aState) aState{
 	return state
 }
 
+func displayPostGame(t float64, state aState) aState {
+	if state.lastPostStart == -1{
+		state.lastPostStart = t
+	}
+	if t - state.lastPostStart > DISPLAY_POST_SECONDS {
+		state.lastPostStart = -1
+		// end routine
+		state.score = [2]int{0,0}
+		state.matchPhase = "game"
+	}
+
+	return state
+	}
+
 func updatePhysics (t float64, state aState) aState{
 	//fmt.Println("new update")
 	//fmt.Print(state)
@@ -236,6 +254,8 @@ func phaseDispatcher(t float64, state aState) aState{
 		return 	updatePhysics(t, state)
 	case state.matchPhase == "score":
 		return displayScore(t, state)
+	case state.matchPhase == "post":
+		return displayPostGame(t, state)
 	default:
 		return  state
 	}
@@ -252,7 +272,9 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 	rightPaddlePos:0.5,
 	score:[2]int{0,0},
 	matchPhase:"game",
-	lastDisplayStart:-1}
+	lastDisplayStart:-1,
+	lastPostStart:-1,
+	}
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 		for bytes := range bytesIn {
@@ -295,9 +317,9 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				//spiral emanating
 				if state.matchPhase == "game" || state.matchPhase == "score"{
 					spiralAmt := Spiral(x-state.ballPosX,y-state.ballPosY,t, 0.1, 12, 1, 0.15, 5)
-					r+=spiralAmt
-					g+=spiralAmt
-					b+=spiralAmt
+					r+=spiralAmt*SPIRAL_DISPLAY
+					g+=spiralAmt*SPIRAL_DISPLAY
+					b+=spiralAmt*SPIRAL_DISPLAY
 				}
 
 				// floating green lattice
@@ -341,6 +363,13 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 					}
 				}
 
+				// render post animation
+				if state.matchPhase == "post"{
+					evenNess := colorutils.PosMod(t, 0.25) < 0.125
+					if evenNess == true {
+						r=1;b=1;g=1
+					}
+				}
 				//fmt.Println(r)
 				bytes[ii*3+0] = colorutils.FloatToByte(r)
 				bytes[ii*3+1] = colorutils.FloatToByte(g)

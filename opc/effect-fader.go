@@ -30,6 +30,8 @@ func MakeEffectFader(locations []float64) ByteThread {
 		EYELID_BLEND = 0.25 // size of eyelid gradient relative to entire bounding box
 
 		FADE_TO_BLACK_TIME = 15.0 / 40.0 // in seconds
+
+		RADIALDUR = 1.2
 	)
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
@@ -91,7 +93,7 @@ func MakeEffectFader(locations []float64) ByteThread {
 			// blink regions
 			blinkArchPad := float64(midiState.KeyVolumes[config.BLINK_ARCH_PAD]) / 127.0
             if blinkArchPad > 0 {lastRadialTime = t}
-            RADIALDUR := 1.2
+
             radialLeft := math.Pow(t-lastRadialTime, 0.5-(0.5*blinkArchPad))
             if radialLeft > RADIALDUR {radialLeft = 0}
 			blinkBackPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0

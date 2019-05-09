@@ -18,12 +18,14 @@ const (
 	IMG_DIR = "images/77m"
 	NUM_LAYERS = 4
 	LAYER_CHANGE_SECS_MAX=120
+	BASE_GAIN_MIN = 0.2
+	BASE_GAIN_MAX = 0.5
 	)
 
 var (
 	layerToChange = 0
 	lastTransition = 0.0 //t in seconds
-	LAYER_CHANGE_SECS = 15.0
+	LAYER_CHANGE_SECS = 1.0
 )
 
 func inList(imageName string, currImages [NUM_LAYERS]string) bool {
@@ -48,6 +50,20 @@ func getNextImage(allImageFiles []string, currImages [NUM_LAYERS]string) string 
 	}
 	return nextFile
 }
+
+func NormVec(unnormed [NUM_LAYERS]float64) [NUM_LAYERS]float64{
+	retVec := [NUM_LAYERS]float64{}
+	// get the vector's sum
+	vecSum := 0.0
+	for i:=0; i<NUM_LAYERS; i++{
+		vecSum += unnormed[i]
+	}
+	// divide each element by the vecsum
+	for i:=0; i<NUM_LAYERS; i++{
+		retVec[i] += unnormed[i]/vecSum
+		}
+	return retVec
+	}
 
 func MakePattern77Million(locations []float64) ByteThread {
 	rand.Seed(time.Now().UnixNano())
@@ -93,6 +109,7 @@ func MakePattern77Million(locations []float64) ByteThread {
 	}
 
 	currAlphas := [NUM_LAYERS]float64{}
+	currAlphasNorm := [NUM_LAYERS]float64{}
 	lastImageSwaps :=  [NUM_LAYERS]float64{}
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
@@ -121,26 +138,34 @@ func MakePattern77Million(locations []float64) ByteThread {
 				b := 0.0
 
 				speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
+				//speedKnob = 1 //TODO delete this
+				baseGainKnob := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
+				//baseGainKnob = 0.3 //TODO delete this
 				LAYER_CHANGE_SECS = speedKnob*LAYER_CHANGE_SECS_MAX
+				baseGain := (baseGainKnob * BASE_GAIN_MAX) + BASE_GAIN_MIN
+				//fmt.Println("speed:", LAYER_CHANGE_SECS)
+				//fmt.Println("base:", baseGainKnob)
 				xyColor := colorful.Color{r, g, b}
 				for li:=0; li<NUM_LAYERS; li++{
 					// the image seems to be flipped on both axes so mutliplying by -1
+
 					offset := float64(li)/float64(NUM_LAYERS)
 					//fmt.Println("Offeset for ", li ,"is", offset)
 
 
 					// want to clip this slightly so that we have transitions in and out but also remains constant for a while
 					alphaCos := colorutils.Cos(t, offset, LAYER_CHANGE_SECS, 0, 1.0)
-					if alphaCos >= 0.5 {alphaCos=0.5}
+					if alphaCos >= 0.6 {alphaCos=0.6}
 					currAlphas[li] = alphaCos
+					//
+					currAlphasNorm = NormVec(currAlphas)
+
 					lr, lg, lb := layerImages[li].getInterpolatedColor(-1*x_norm, -1*y_norm, "tile")
 					// TODO blend these layers better
 					layerColor := colorful.Color{lr, lg, lb}
-					xyColor = xyColor.BlendRgb(layerColor, currAlphas[li]).Clamped()
+					xyColor = xyColor.BlendRgb(layerColor, currAlphasNorm[li]).Clamped()
+
 					//fmt.Println("li, currAlpha, layer color, xycolor", li, currAlphas[li], layerColor, xyColor)
-					//r += currAlphas[li]*lr + LAYER_GAIN_BASELINE
-					//g += currAlphas[li]*lg + LAYER_GAIN_BASELINE
-					//b += currAlphas[li]*lb + LAYER_GAIN_BASELINE
 
 					// switch out the image if the alpha is low and we haven't changed it recently
 					lastLayerTransition := t-lastImageSwaps[li]
@@ -148,22 +173,20 @@ func MakePattern77Million(locations []float64) ByteThread {
 							//fmt.Println("last layer trans", lastLayerTransition)
 							//fmt.Println(currAlphas)
 							nextImage := getNextImage(allImageFiles, currImageFiles)
-							fmt.Println("curr images, next image,", currImageFiles, nextImage)
+							//fmt.Println("curr images, next image,", currImageFiles, nextImage)
+							//fmt.Println("curr alphas, next image, [", currAlphas[0], currAlphas[1], currAlphas[2], currAlphas[3], "]", nextImage)
+							fmt.Println("currAlpahs, currAlphasNorm", currAlphas, currAlphasNorm)
 							nextImageFull := IMG_DIR+"/"+nextImage
 							layerImages[li].populateFromImage(nextImageFull)
 							currImageFiles[li] = nextImage
 							lastImageSwaps[li]=t
 
-
 					}
 				}
-				//if math.Mod(t, 1.0)<0.01{
-				//	fmt.Println("acurrAlphas", currAlphas)
-				//}
 
-				bytes[ii*3+0] = colorutils.FloatToByte(xyColor.R)
-				bytes[ii*3+1] = colorutils.FloatToByte(xyColor.G)
-				bytes[ii*3+2] = colorutils.FloatToByte(xyColor.B)
+				bytes[ii*3+0] = colorutils.FloatToByte(xyColor.R + baseGain)
+				bytes[ii*3+1] = colorutils.FloatToByte(xyColor.G + baseGain)
+				bytes[ii*3+2] = colorutils.FloatToByte(xyColor.B + baseGain)
 
 				//--------------------------------------------------------------------------------
 			}

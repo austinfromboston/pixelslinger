@@ -18,7 +18,7 @@ import (
 
 func Spiral(x, y, t, SPIRAL_tightness, SPIRAL_speed, SPIRAL_thickness, SPIRAL_thickness_gradient float64, SPIRAL_rings int) float64 {
 	lhs := math.Sqrt((x*x + y*y))
-
+	// theta = r // sqrt()
 	tt := t * SPIRAL_speed
 	rhs_num := y*math.Cos(tt) + x*math.Sin(tt)
 	rhs_den := x*math.Cos(tt) - y*math.Sin(tt)
