@@ -9,6 +9,7 @@ import (
 	"time"
 	"fmt"
 	"github.com/longears/pixelslinger/config"
+	"math/rand"
 )
 
 // Configs
@@ -26,6 +27,7 @@ const (physicsUpdateIntervalMiliSeconds = 25
 	DISPLAY_SCORE_SECONDS = 1.2
 	DISPLAY_POST_SECONDS = 5
 	SPIRAL_DISPLAY=0.6
+	PADDLE_BOX_EASE=0.25
 	)
 
 
@@ -73,7 +75,7 @@ func paddleHitCheckRoutine(state aState, t float64, r float64, leftRight string)
 	}
 
 	_, paddleY, dtp := distanceToPaddle(state.ballPosX, state.ballPosY, paddlePos, sideTheta)
-	if dtp < halfPaddleLength{
+	if dtp < halfPaddleLength+PADDLE_BOX_EASE{
 		//fmt.Println("hit paddle")
 		reflectUpDown := 1.0
 		if paddleY > state.ballPosY { reflectUpDown = -1.0} else {reflectUpDown = 1.0}
@@ -154,18 +156,25 @@ func handlePlayerInput(state aState, midiState *midi.MidiState) aState {
 	return state
 }
 
-func simulateBall(state aState) aState{
+func simulateBall(state aState, t float64) aState{
+	// if first time
+	if state.lastGameStart == -1 { state.lastGameStart = t}
+
+	gameTimeElapsed := t- state.lastGameStart
+	fmt.Println("gameTimeElapsed", gameTimeElapsed)
 	//fmt.Print(state)
 	xsq := math.Pow(state.ballPosX, 2)
 	ysq := math.Pow(state.ballPosY, 2)
 	r := math.Sqrt(xsq+ysq)
 	theta := math.Atan2(state.ballPosY, state.ballPosX)
 	rShiftBase := 0.000001
+	rShiftSpeed:= 0.0000001 * gameTimeElapsed
 	thetaShiftBase := 0.00005
-	rShiftAmt := rShiftBase * state.ballVert
+	thetaShiftSpeed:= 0.000005 * gameTimeElapsed
+	rShiftAmt := (rShiftBase+rShiftSpeed) * state.ballVert
 	// i didive the shift amount by 2pi(19/40)r, so that
 	// to the time to travel the segment length is proportional to the radius.
-	thetaShiftAmt := thetaShiftBase * state.ballHoriz /(2.98*r)
+	thetaShiftAmt := (thetaShiftBase+thetaShiftSpeed) * state.ballHoriz /(2.98*r)
 	//fmt.Println("thetaShiftAmt", thetaShiftAmt)
 	r_prime := r+ rShiftAmt
 	theta_prime := theta+ thetaShiftAmt
@@ -203,8 +212,9 @@ func displayScore(t float64, state aState) aState{
 			state.matchPhase = "post" // victory condition
 		} else{
 			state.matchPhase = "game"
+			state.lastGameStart = t
 			// reset the ball
-			state.ballPosY = 1
+			state.ballPosY = 1 + rand.Float64()
 			state.ballPosX = 0
 		}
 	}
@@ -241,7 +251,7 @@ func updatePhysics (t float64, state aState) aState{
 	//fmt.Println("new update")
 	//fmt.Print(state)
 	state = detectBoundaryCollision(state, t)
-	state = simulateBall(state)
+	state = simulateBall(state, t)
 	state = removePaddleActives(state, t)
 
 	return state
@@ -268,12 +278,13 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 		ballPosX:0.0,
 		ballHoriz:1.0,
 		ballVert:1.0,
-	leftPaddlePos:0.5,
-	rightPaddlePos:0.5,
-	score:[2]int{0,0},
-	matchPhase:"game",
-	lastDisplayStart:-1,
-	lastPostStart:-1,
+		leftPaddlePos:0.5,
+		rightPaddlePos:0.5,
+		score:[2]int{0,0},
+		matchPhase:"game",
+		lastDisplayStart:-1,
+		lastPostStart:-1,
+		lastGameStart: -1,
 	}
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
@@ -315,8 +326,8 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				}
 
 				//spiral emanating
-				if state.matchPhase == "game" || state.matchPhase == "score"{
-					spiralAmt := Spiral(x-state.ballPosX,y-state.ballPosY,t, 0.1, 12, 1, 0.15, 5)
+				if state.matchPhase == "game" || state.matchPhase == "score" || state.matchPhase == "post"{
+					spiralAmt := Spiral(x-state.ballPosX,y-state.ballPosY,t, 0.1, 12, 1, 0.15, 7)
 					r+=spiralAmt*SPIRAL_DISPLAY
 					g+=spiralAmt*SPIRAL_DISPLAY
 					b+=spiralAmt*SPIRAL_DISPLAY
@@ -364,10 +375,16 @@ func MakePatternPolarPong(locations []float64) ByteThread {
 				}
 
 				// render post animation
-				if state.matchPhase == "post"{
+				if state.matchPhase == "post" {
+					winnerSideIsLeft := true
+					if state.score[1]>state.score[0]{winnerSideIsLeft = false}
+					xIsLeft := x < 0
+
+					shouldFlash := (winnerSideIsLeft && xIsLeft) || (!winnerSideIsLeft && !xIsLeft)
+
 					evenNess := colorutils.PosMod(t, 0.25) < 0.125
-					if evenNess == true {
-						r=1;b=1;g=1
+					if evenNess == true && shouldFlash{
+						r=0.2;b=0.2;g=0.2
 					}
 				}
 				//fmt.Println(r)

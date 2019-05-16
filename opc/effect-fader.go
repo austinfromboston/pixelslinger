@@ -24,7 +24,7 @@ func MakeEffectFader(locations []float64) ByteThread {
 		FLASH_B            = 1.00
 		FLASH_DURATION_EXP = 5.0 // exponent for random duration
 
-		MAX_TWINKLE_DENSITY = 0.3
+		MAX_TWINKLE_DENSITY = 0.9
 		TWINKLE_DURATION    = 8.0 / 40.0
 
 		EYELID_BLEND = 0.25 // size of eyelid gradient relative to entire bounding box
@@ -32,6 +32,8 @@ func MakeEffectFader(locations []float64) ByteThread {
 		FADE_TO_BLACK_TIME = 15.0 / 40.0 // in seconds
 
 		RADIALDUR = 1.2
+		TIMES_PRESSABLE = 100
+		MIN_PRESS_REST = 0.1
 	)
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
@@ -72,9 +74,13 @@ func MakeEffectFader(locations []float64) ByteThread {
 		}
 
 		lastFlashTime := 0.0
-        lastRadialTime := 0.0
+		lastFlashPad := 0.0
+		lastRadialTime := 0.0
+        lastRadialTimes := [TIMES_PRESSABLE]float64{0.0}
+        radialsLeft := [TIMES_PRESSABLE]float64{}
         lastSweepTime := 0.0
-        //lastSweepVelo := 0.0
+        lastSweepTimes := [TIMES_PRESSABLE]float64{0.0}
+        sweepsLeft := [TIMES_PRESSABLE]float64{0.0}
 		lastTwinkleTime := 0.0
 		lastTwinklePad := 0.0
 		lastFadeToBlackPad := 0.0
@@ -83,6 +89,14 @@ func MakeEffectFader(locations []float64) ByteThread {
 			n_pixels := len(bytes) / 3
 			t := float64(time.Now().UnixNano())/1.0e9 - 9.4e8
 
+			// flash pad
+			flashPad := float64(midiState.KeyVolumes[config.FLASH_PAD]) / 127.0
+			if flashPad > 0 {
+				lastFlashPad = flashPad
+				lastFlashTime = t
+			}
+
+			
 			// twinkle strobe pad
 			twinklePad := float64(midiState.KeyVolumes[config.TWINKLE_PAD]) / 127.0
 			if twinklePad > 0 {
@@ -90,20 +104,38 @@ func MakeEffectFader(locations []float64) ByteThread {
 				lastTwinkleTime = t
 			}
 
-			// blink regions
+			// radial record ons
 			blinkArchPad := float64(midiState.KeyVolumes[config.BLINK_ARCH_PAD]) / 127.0
-            if blinkArchPad > 0 {lastRadialTime = t}
+			// its on an not so soon
+            if blinkArchPad > 0  && t - lastRadialTime > MIN_PRESS_REST {
+            	lastRadialTime = t
+            	// insert into the first non 0 location
+				for i:=0; i<TIMES_PRESSABLE; i++ {
+					if lastRadialTimes[i] == 0 { lastRadialTimes[i] = t; break }
+				}
+			}
 
-            radialLeft := math.Pow(t-lastRadialTime, 0.5-(0.5*blinkArchPad))
-            if radialLeft > RADIALDUR {radialLeft = 0}
-			blinkBackPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0
-            if blinkBackPad > 0 {
-                        lastSweepTime = t
-                        //lastSweepVelo = blinkBackPad
+            // radials switch off conditions
+			for i:=0; i<TIMES_PRESSABLE; i++ {
+				radialsLeft[i] = math.Pow(t-lastRadialTimes[i], 0.5-(0.5*blinkArchPad))
+				if radialsLeft[i] > RADIALDUR {radialsLeft[i] = 0; lastRadialTimes[i]=0.0}
+			}
+
+
+            blinkBackPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0
+            if blinkBackPad > 0  && t - lastSweepTime > MIN_PRESS_REST {
+				lastSweepTime = t
+            	for i:=0; i<TIMES_PRESSABLE; i++ {
+					if lastSweepTimes[i] == 0 { lastSweepTimes[i] = t; break }
+				}
                         }
-            
-            sweepLeft := math.Pow(t-lastSweepTime, 1)
-            if sweepLeft > RADIALDUR {sweepLeft = 0}
+
+			// sweeps switch off conditions
+			for i:=0; i<TIMES_PRESSABLE; i++ {
+				sweepsLeft[i] = math.Pow(t-lastSweepTimes[i], 1)
+				if sweepsLeft[i] > RADIALDUR {sweepsLeft[i] = 0; lastSweepTimes[i]=0.0}
+			}
+
             
 			// gain knob
 			gainKnob := float64(midiState.ControllerValues[config.GAIN_KNOB]) / 127.0
@@ -138,10 +170,15 @@ func MakeEffectFader(locations []float64) ByteThread {
 				r := float64(bytes[ii*3+0]) / 255
 				g := float64(bytes[ii*3+1]) / 255
 				b := float64(bytes[ii*3+2]) / 255
+
+				interaction_color := 0.0
+				_ = interaction_color
                 
                 x := locations[ii*3+0]
-				z := locations[ii*3+2]
+				y := locations[ii*3+1]
+                z := locations[ii*3+2]
 
+                _ = y
 				// zp ranges from 0 to 1 in the bounding box
 				zp := colorutils.Remap(z, min_coord_z, max_coord_z, 0, 1)
 
@@ -167,10 +204,11 @@ func MakeEffectFader(locations []float64) ByteThread {
 				b *= eyelid
 
 				// lightning flash
-				flashAmt := colorutils.Clamp(colorutils.Remap(t-lastFlashTime, 0, FLASH_DURATION_MIN+randomValues[ii]*(FLASH_DURATION_MAX-FLASH_DURATION_MIN), 1, 0), 0, 1)
-				r = r*(1-flashAmt) + flashAmt*FLASH_R
-				g = g*(1-flashAmt) + flashAmt*FLASH_G
-				b = b*(1-flashAmt) + flashAmt*FLASH_B
+				flashAmt := flashPad
+				_ = lastFlashPad
+				_ = lastFlashTime
+				if flashAmt > 0 {interaction_color += flashAmt}
+
 
 				// twinkle strobe
 				twinkleAmt := colorutils.Clamp(colorutils.Remap(t-lastTwinkleTime, 0, TWINKLE_DURATION, 1, 0), 0, 1)
@@ -186,27 +224,42 @@ func MakeEffectFader(locations []float64) ByteThread {
 					b += thisTwinkle
 				}
 
-				// blink regions
-				if radialLeft > 0 {
-                    rad_const := max_coord_x * radialLeft
-                    rad := math.Sqrt(x*x + z*z)
-                    radial_amount := 1 - math.Pow(math.Abs(rad_const - rad),0.8)
-                    if radial_amount>0.9{
-					    r = radial_amount
-					    g = radial_amount
-					    b = radial_amount
-                    }
+				// radial regions
+				for i:=0; i<TIMES_PRESSABLE; i++ {
+					radialLeft := radialsLeft[i]
+					if radialLeft > 0 {
+						rad_const := max_coord_x * radialLeft
+						rad := math.Sqrt(x*x + z*z)
+						radial_amount := 1 - math.Pow(math.Abs(rad_const - rad),0.8)
+						if radial_amount>0.9{
+							interaction_color += radial_amount
+						}
+					}
 				}
-				if sweepLeft > 0 {
-                    theta_const := math.Pi * sweepLeft * 2    
-                    theta := math.Atan2(z, x)
-                    sweep_amount := 1 - math.Abs(theta_const - theta)
-                    if sweep_amount>0.5 {
-					r = sweep_amount
-					g = sweep_amount
-					b = sweep_amount
-                    }
+
+				for i:=0; i<TIMES_PRESSABLE; i++ {
+					sweepLeft := sweepsLeft[i]
+					if sweepLeft > 0 {
+						theta_const :=  2 * math.Pi * sweepLeft
+						theta := math.Atan2(z, x)
+						sweep_amount := theta_const - theta
+						if sweep_amount>.9 && sweep_amount<1 {
+							interaction_color += sweep_amount
+						}
+					}
 				}
+
+				if interaction_color<1{
+					r += interaction_color
+					g += interaction_color
+					b += interaction_color
+				}
+				if interaction_color>1{
+					r -= interaction_color
+					g -= interaction_color
+					b -= interaction_color
+				}
+
 
 				// desaturation
 				if desatKnob != 0 {

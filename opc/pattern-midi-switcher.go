@@ -25,9 +25,9 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 			"moire",
 			"white",
 			"aqua",
-			"house-potty",
             "archimedes",
             "pong",
+            "77m",
 		}
 
 		// channels for communication with subpattern
