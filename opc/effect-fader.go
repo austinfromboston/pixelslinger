@@ -33,7 +33,7 @@ func MakeEffectFader(locations []float64) ByteThread {
 
 		RADIALDUR = 1.2
 		TIMES_PRESSABLE = 100
-		MIN_PRESS_REST = 0.1
+		MIN_PRESS_REST = 0.05
 	)
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
@@ -78,6 +78,9 @@ func MakeEffectFader(locations []float64) ByteThread {
 		lastRadialTime := 0.0
         lastRadialTimes := [TIMES_PRESSABLE]float64{0.0}
         radialsLeft := [TIMES_PRESSABLE]float64{}
+		lastRevRadialTime := 0.0
+        lastRevRadialTimes := [TIMES_PRESSABLE]float64{0.0}
+        revRadialsLeft := [TIMES_PRESSABLE]float64{}
         lastSweepTime := 0.0
         lastSweepTimes := [TIMES_PRESSABLE]float64{0.0}
         sweepsLeft := [TIMES_PRESSABLE]float64{0.0}
@@ -120,8 +123,24 @@ func MakeEffectFader(locations []float64) ByteThread {
 				radialsLeft[i] = math.Pow(t-lastRadialTimes[i], 0.5-(0.5*blinkArchPad))
 				if radialsLeft[i] > RADIALDUR {radialsLeft[i] = 0; lastRadialTimes[i]=0.0}
 			}
+			// radial record ons
+			revRadialPad := float64(midiState.KeyVolumes[config.RIPPLE_PAD]) / 127.0
+			// its on an not so soon
+            if revRadialPad > 0  && t - lastRevRadialTime > MIN_PRESS_REST {
+            	lastRevRadialTime = t
+            	// insert into the first non 0 location
+				for i:=0; i<TIMES_PRESSABLE; i++ {
+					if lastRevRadialTimes[i] == 0 { lastRevRadialTimes[i] = t; break }
+				}
+			}
 
+            // RevRadials switch off conditions
+			for i:=0; i<TIMES_PRESSABLE; i++ {
+				revRadialsLeft[i] = math.Pow(t-lastRevRadialTimes[i], 0.5-(0.5*blinkArchPad))
+				if revRadialsLeft[i] > RADIALDUR {revRadialsLeft[i] = 0; lastRevRadialTimes[i]=0.0}
+			}
 
+			// sweep ons
             blinkBackPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0
             if blinkBackPad > 0  && t - lastSweepTime > MIN_PRESS_REST {
 				lastSweepTime = t
@@ -172,8 +191,7 @@ func MakeEffectFader(locations []float64) ByteThread {
 				b := float64(bytes[ii*3+2]) / 255
 
 				interaction_color := 0.0
-				_ = interaction_color
-                
+
                 x := locations[ii*3+0]
 				y := locations[ii*3+1]
                 z := locations[ii*3+2]
@@ -237,6 +255,19 @@ func MakeEffectFader(locations []float64) ByteThread {
 					}
 				}
 
+				// revradial regions
+				for i:=0; i<TIMES_PRESSABLE; i++ {
+					radialLeft := revRadialsLeft[i]
+					if radialLeft > 0 {
+						rad_const := max_coord_x * (1-radialLeft)
+						rad := math.Sqrt(x*x + z*z)
+						radial_amount := 1 - math.Pow(math.Abs(rad_const - rad),0.8)
+						if radial_amount>0.9{
+							interaction_color += radial_amount
+						}
+					}
+				}
+
 				for i:=0; i<TIMES_PRESSABLE; i++ {
 					sweepLeft := sweepsLeft[i]
 					if sweepLeft > 0 {
@@ -249,15 +280,18 @@ func MakeEffectFader(locations []float64) ByteThread {
 					}
 				}
 
+
+				HUE := float64(midiState.ControllerValues[config.HUE_KNOB]) / 127.0
+				interaction_r, interaction_g, interaction_b := colorutils.HslToRgb(HUE, 1.0, 0.75)
 				if interaction_color<1{
-					r += interaction_color
-					g += interaction_color
-					b += interaction_color
+					r += interaction_r * interaction_color
+					g += interaction_g * interaction_color
+					b += interaction_b * interaction_color
 				}
 				if interaction_color>1{
-					r -= interaction_color
-					g -= interaction_color
-					b -= interaction_color
+					r -= interaction_r * interaction_color
+					g -= interaction_g * interaction_color
+					b -= interaction_b * interaction_color
 				}
 
 

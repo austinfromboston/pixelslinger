@@ -161,7 +161,7 @@ func simulateBall(state aState, t float64) aState{
 	if state.lastGameStart == -1 { state.lastGameStart = t}
 
 	gameTimeElapsed := t- state.lastGameStart
-	fmt.Println("gameTimeElapsed", gameTimeElapsed)
+	//fmt.Println("gameTimeElapsed", gameTimeElapsed)
 	//fmt.Print(state)
 	xsq := math.Pow(state.ballPosX, 2)
 	ysq := math.Pow(state.ballPosY, 2)

@@ -138,9 +138,7 @@ func MakePattern77Million(locations []float64) ByteThread {
 				b := 0.0
 
 				speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
-				//speedKnob = 1 //TODO delete this
 				baseGainKnob := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
-				//baseGainKnob = 0.3 //TODO delete this
 				LAYER_CHANGE_SECS = speedKnob*LAYER_CHANGE_SECS_MAX
 				baseGain := (baseGainKnob * BASE_GAIN_MAX) + BASE_GAIN_MIN
 				//fmt.Println("speed:", LAYER_CHANGE_SECS)
@@ -175,7 +173,7 @@ func MakePattern77Million(locations []float64) ByteThread {
 							nextImage := getNextImage(allImageFiles, currImageFiles)
 							//fmt.Println("curr images, next image,", currImageFiles, nextImage)
 							//fmt.Println("curr alphas, next image, [", currAlphas[0], currAlphas[1], currAlphas[2], currAlphas[3], "]", nextImage)
-							fmt.Println("currAlpahs, currAlphasNorm", currAlphas, currAlphasNorm)
+							//fmt.Println("currAlpahs, currAlphasNorm", currAlphas, currAlphasNorm)
 							nextImageFull := IMG_DIR+"/"+nextImage
 							layerImages[li].populateFromImage(nextImageFull)
 							currImageFiles[li] = nextImage

@@ -42,6 +42,34 @@ func Spiral(x, y, t, SPIRAL_tightness, SPIRAL_speed, SPIRAL_thickness, SPIRAL_th
 }
 
 func MakePatternArchimedes(locations []float64) ByteThread {
+	// get bounding box
+	n_pixels := len(locations) / 3
+	var max_coord_x, max_coord_y, max_coord_z float64
+	var min_coord_x, min_coord_y, min_coord_z float64
+	for ii := 0; ii < n_pixels; ii++ {
+		x := locations[ii*3+0]
+		y := locations[ii*3+1]
+		z := locations[ii*3+2]
+		if ii == 0 || x > max_coord_x {
+			max_coord_x = x
+		}
+		if ii == 0 || y > max_coord_y {
+			max_coord_y = y
+		}
+		if ii == 0 || z > max_coord_z {
+			max_coord_z = z
+		}
+		if ii == 0 || x < min_coord_x {
+			min_coord_x = x
+		}
+		if ii == 0 || y < min_coord_y {
+			min_coord_y = y
+		}
+		if ii == 0 || z < min_coord_z {
+			min_coord_z = z
+		}
+	}
+
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 		for bytes := range bytesIn {
 			n_pixels := len(bytes) / 3
@@ -82,11 +110,17 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 				//fmt.Println(noii)
 				//noii = 0.0
 			    speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
-				spiral1 := Spiral(x, y, t, 0.1*noi, (speedKnob*2)+noii, 0.05, 0.9, 4)
-				spiral2 := Spiral(x, y, t, -0.1*noi, (speedKnob*4)+noii, 0.05, 0.5, 4)
-				spiral3 := Spiral(x, y, t, -0.05*noi, (speedKnob*8)+noii, 0.1, 0.3, 8)
-				spiral4 := Spiral(x, y, t, 0.5*noi, (speedKnob*0.5)+noii, 0.5, 0.4, 3)
-				spiral5 := Spiral(x, y, t, -0.5*noi, (speedKnob*0.25)+noii, 0.5, 0.4, 3)
+			    desatKnob := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
+			    player2Knob := float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
+
+				xShift := player2Knob*max_coord_x - (max_coord_x/2)
+				yShift := desatKnob*max_coord_z - (max_coord_z/2)
+
+			    spiral1 := Spiral(x-xShift, y-yShift, t, 0.1*noi, (speedKnob*2)+noii, 0.05, 0.9, 5)
+				spiral2 := Spiral(x-xShift, y-yShift, t, -0.1*noi, (speedKnob*4)+noii, 0.05, 0.5, 5)
+				spiral3 := Spiral(x-xShift, y-yShift, t, -0.05*noi, (speedKnob*8)+noii, 0.1, 0.3, 8)
+				spiral4 := Spiral(x-xShift, y-yShift, t, 0.5*noi, (speedKnob*0.5)+noii, 0.5, 0.4, 5)
+				spiral5 := Spiral(x-xShift, y-yShift, t, -0.5*noi, (speedKnob*0.25)+noii, 0.5, 0.4, 5)
 
 				var (
 					//White = colorful.LinearRgb(1, 1, 1)
