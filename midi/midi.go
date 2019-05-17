@@ -40,6 +40,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"github.com/austinfromboston/pixelslinger/remote"
 )
 
 //================================================================================
@@ -218,12 +219,13 @@ func GetMidiMessageStream(path string) chan *MidiMessage {
 // Assumes the file is a special device file which will never hit EOF.
 // If the file can't be opened, it will keep trying once a second forver until it succeeds.
 func tenaciousFileByteStreamerThread(path string, outCh chan byte) {
+	go remote.GetRemoteServer(outCh)
 	for {
 		file, err := os.Open(path)
 		if err != nil {
 			time.Sleep(time.Duration(RETRY_WAIT * time.Second))
 			fmt.Println("[midi] couldn't open midi device:", path, " ... waiting and trying again")
-			continue
+			return
 		}
 		defer file.Close()
 		fmt.Println("[midi] successfully opened midi device", path)

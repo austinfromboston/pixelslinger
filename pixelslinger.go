@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 	"github.com/droundy/goopt"
-	"github.com/austinfromboston/pixelslinger/beaglebone"
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/austinfromboston/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/opc"
@@ -19,8 +18,8 @@ import (
 	"github.com/austinfromboston/pixelslinger/potty"
 )
 
-const ONBOARD_LED_HEARTBEAT = 0
-const ONBOARD_LED_MIDI = 1
+//const ONBOARD_LED_HEARTBEAT = 0
+//const ONBOARD_LED_MIDI = 1
 
 const SPI_MAGIC_WORD = "spi"
 const PRINT_MAGIC_WORD = "print"
@@ -153,6 +152,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	fmt.Println("midiPath is", midiPath)
 	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
 	midiState := midi.MidiState{}
+
 	// set initial values for controller knobs
 	//  (because the midi hardware only sends us values when the knobs move)
 	for knob, defaultVal := range config.DEFAULT_KNOB_VALUES {
@@ -176,7 +176,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	framesSinceLastPrint := 0
 	firstIteration := true
 	flipper := 0
-	beaglebone.SetOnboardLED(0, 1)
+	//beaglebone.SetOnboardLED(0, 1)
 	for {
 		// if we have any frame budget left from last time around, sleep to control the framerate
 		if fps > 0 {
@@ -196,7 +196,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 			fmt.Printf("[mainLoop] %f ms/frame (%d fps)\n", 1000.0/float64(framesSinceLastPrint), framesSinceLastPrint)
 			framesSinceLastPrint = 0
 			// toggle LED
-			beaglebone.SetOnboardLED(ONBOARD_LED_HEARTBEAT, flipper)
+			//beaglebone.SetOnboardLED(ONBOARD_LED_HEARTBEAT, flipper)
 			flipper = 1 - flipper
 		}
 
@@ -207,11 +207,11 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 
 		// get midi
 		midiState.UpdateStateFromChannel(midiMessageChan)
-		if len(midiState.RecentMidiMessages) > 0 {
-			beaglebone.SetOnboardLED(ONBOARD_LED_MIDI, 1)
-		} else {
-			beaglebone.SetOnboardLED(ONBOARD_LED_MIDI, 0)
-		}
+		//if len(midiState.RecentMidiMessages) > 0 {
+		//	beaglebone.SetOnboardLED(ONBOARD_LED_MIDI, 1)
+		//} else {
+		//	beaglebone.SetOnboardLED(ONBOARD_LED_MIDI, 0)
+		//}
 
 		// start the threads filling and sending slices in parallel.
 		// if this is the first time through the loop we have to skip
