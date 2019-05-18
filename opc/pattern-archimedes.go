@@ -8,7 +8,7 @@ package opc
 import (
 	"github.com/longears/pixelslinger/colorutils"
 	"github.com/longears/pixelslinger/midi"
-	"github.com/longears/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/lucasb-eyer/go-colorful"
 	"math"
 	"math/rand"

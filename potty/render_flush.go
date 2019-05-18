@@ -17,7 +17,7 @@ const (
 	// Size of falling water streams when draining
 	FlushStreamerSize = 0.15
 
-	FlushControlPad = config.FLUSH_PAD
+	FlushControlPad = config.RIPPLE_PAD
 )
 
 type FlushEffect struct {

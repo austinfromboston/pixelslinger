@@ -8,7 +8,7 @@ import (
 	"math"
 	"time"
 	"fmt"
-	"github.com/longears/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/config"
 	"math/rand"
 )
 
