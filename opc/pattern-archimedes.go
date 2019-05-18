@@ -42,6 +42,10 @@ func Spiral(x, y, t, SPIRAL_tightness, SPIRAL_speed, SPIRAL_thickness, SPIRAL_th
 }
 
 func MakePatternArchimedes(locations []float64) ByteThread {
+	const(
+		SPEED_BASE = 2
+	)
+
 	// get bounding box
 	n_pixels := len(locations) / 3
 	var max_coord_x, max_coord_y, max_coord_z float64
@@ -106,21 +110,28 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 				
                 noi := dirKnob
 				//fmt.Println(noi)
-				noii := math.Abs(rand.Float64() * 0.000000000000)
+				noii := math.Abs(rand.Float64() * 0.0000000000001)
 				//fmt.Println(noii)
 				//noii = 0.0
 			    speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
-			    desatKnob := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
+			    s1 := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
 			    player2Knob := float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
+				hueKnob := float64(midiState.ControllerValues[config.HUE_KNOB]) / 127.0
 
 				xShift := player2Knob*max_coord_x - (max_coord_x/2)
-				yShift := desatKnob*max_coord_z - (max_coord_z/2)
+				yShift := hueKnob*max_coord_z - (max_coord_z/2)
 
-			    spiral1 := Spiral(x-xShift, y-yShift, t, 0.1*noi, (speedKnob*2)+noii, 0.05, 0.9, 5)
-				spiral2 := Spiral(x-xShift, y-yShift, t, -0.1*noi, (speedKnob*4)+noii, 0.05, 0.5, 5)
-				spiral3 := Spiral(x-xShift, y-yShift, t, -0.05*noi, (speedKnob*8)+noii, 0.1, 0.3, 8)
-				spiral4 := Spiral(x-xShift, y-yShift, t, 0.5*noi, (speedKnob*0.5)+noii, 0.5, 0.4, 5)
-				spiral5 := Spiral(x-xShift, y-yShift, t, -0.5*noi, (speedKnob*0.25)+noii, 0.5, 0.4, 5)
+				speed1 := speedKnob * SPEED_BASE * 2    + noii
+				speed2 := speedKnob * SPEED_BASE * 4    + noii
+				speed3 := speedKnob * SPEED_BASE * 8    + noii
+				speed4 := speedKnob * SPEED_BASE * 0.5  + noii
+				speed5 := speedKnob * SPEED_BASE * 0.25 + noii
+
+			    spiral1 := Spiral(x+xShift, y-yShift, t, 0.1*noi,  speed1, 0.05, 0.9, 5)
+				spiral2 := Spiral(x+xShift, y-yShift, t, -0.1*noi, speed2 , 0.05, 0.5, 5)
+				spiral3 := Spiral(x+xShift, y-yShift, t, -0.05*noi,speed3 , 0.1, 0.3, 8)
+				spiral4 := Spiral(x+xShift, y-yShift, t, 0.5*noi,  speed4 , 0.5, 0.4, 5)
+				spiral5 := Spiral(x+xShift, y-yShift, t, -0.5*noi, speed5 , 0.5, 0.4, 5)
 
 				var (
 					//White = colorful.LinearRgb(1, 1, 1)
@@ -144,9 +155,9 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 					mintCoolee = colorful.LinearRgb(0.27, 0.49, 0.45)
 				)
 
-				colors := [5]colorful.Color{deepRed, flesh, peachSherbet, cantaloupe, dimPeach}
-				altColors := [5]colorful.Color{are, driftingPetal, influences, kleinBlue, afekCouch}
-				altColors = [5]colorful.Color{coolmint, freshmint, spearmint, guava, mintCoolee}
+				altColors := [5]colorful.Color{deepRed, flesh, peachSherbet, cantaloupe, dimPeach}
+				colors := [5]colorful.Color{are, driftingPetal, influences, kleinBlue, afekCouch}
+				colors = [5]colorful.Color{coolmint, freshmint, spearmint, guava, mintCoolee}
 				spirals := [5]float64{spiral1, spiral2, spiral3, spiral4, spiral5}
 
 				linear_weight := 0.6
@@ -154,7 +165,6 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 				g := 0.0
 				b := 0.0
 				//s1 := math.Pow(colorutils.Cos(t, 0, 20.0, 0, 1), 0.2)
-                s1 := float64(midiState.ControllerValues[config.HUE_KNOB]) / 127.0
 				//fmt.Println(s1)
 				r1 := 1 - s1
 				//fmt.Println(altColors[1])
