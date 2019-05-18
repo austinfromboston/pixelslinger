@@ -1,8 +1,8 @@
 package potty
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	colorful "github.com/lucasb-eyer/go-colorful"
 )
 

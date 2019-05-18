@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/midi"
 )
 
 // midi pads

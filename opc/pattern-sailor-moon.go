@@ -4,8 +4,8 @@ package opc
 //   Waves of magenta and cyan sparkles.
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"math/rand"
 	"time"

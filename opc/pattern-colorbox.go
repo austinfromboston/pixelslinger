@@ -4,8 +4,8 @@ package opc
 // Every pixel's r,g,b  is linearly related to its x,y,z.
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"time"
 )

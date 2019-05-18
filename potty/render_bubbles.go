@@ -1,7 +1,7 @@
 package potty
 
 import (
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/midi"
 )
 
 const BSpread = 9       // How spread out the buubbles are (aka few can you see)

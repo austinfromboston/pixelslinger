@@ -22,7 +22,7 @@ Install & compile
 1. Fetch code and dependencies:
 
  ```
- go get github.com/longears/pixelslinger
+ go get github.com/austinfromboston/pixelslinger
  go get github.com/pkg/profile
  go get github.com/droundy/goopt
  ```
@@ -32,7 +32,7 @@ Install & compile
 1. Compile / run
 
  ```
- cd $GOPATH/src/github.com/longears/pixelslinger
+ cd $GOPATH/src/github.com/austinfromboston/pixelslinger
   
  go run pixelslinger.go     // compile and run in one step
  
@@ -109,7 +109,7 @@ no extra spaces or newlines anywhere.  Also note the lack of a comma on the last
 your own layouts you should build them as strings instead of trying to use a JSON library, or they might not
 match this format pefectly.
 
-Here are [a bunch of Python scripts](https://github.com/longears/openpixelcontrol/tree/metal_tower_2/layouts)
+Here are [a bunch of Python scripts](https://github.com/austinfromboston/openpixelcontrol/tree/metal_tower_2/layouts)
 for generating layout files.  For example, there's one called `objToLayout.py` which converts OBJ files to
 layout files.
 
@@ -117,7 +117,7 @@ layout files.
 Developer documentation
 -----------------------
 
-http://godoc.org/github.com/longears/pixelslinger
+http://godoc.org/github.com/austinfromboston/pixelslinger
 
 
 Command Line Usage

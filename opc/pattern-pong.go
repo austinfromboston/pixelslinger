@@ -3,8 +3,8 @@ package opc
 // Polar Pong
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"time"
 	"fmt"

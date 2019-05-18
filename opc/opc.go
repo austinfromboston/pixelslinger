@@ -6,7 +6,7 @@ package opc
 import (
 	"bufio"
 	"fmt"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"net"
 	"os"

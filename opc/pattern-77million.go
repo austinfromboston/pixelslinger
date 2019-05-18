@@ -1,8 +1,8 @@
 package opc
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	_ "image/color"
 	_ "image/png"
 	"io/ioutil"

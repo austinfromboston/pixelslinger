@@ -4,8 +4,8 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/longears/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/midi"
 	colorful "github.com/lucasb-eyer/go-colorful"
 )
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/longears/pixelslinger/opc"
+	"github.com/austinfromboston/pixelslinger/opc"
 )
 
 func main() {

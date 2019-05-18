@@ -9,9 +9,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/longears/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/colorutils"
 	"github.com/austinfromboston/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/midi"
 )
 
 func MakeEffectFader(locations []float64) ByteThread {

@@ -5,8 +5,8 @@ package opc
 //   It limits itself to the first 160 pixels; the rest will be black.
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"math/rand"
 	"time"

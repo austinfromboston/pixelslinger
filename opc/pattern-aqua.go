@@ -6,8 +6,8 @@ package opc
 //   that the LEDs are indexed.
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"time"
 )

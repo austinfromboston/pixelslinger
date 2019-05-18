@@ -2,9 +2,9 @@ package opc
 
 import (
 	"fmt"
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"image"
 	_ "image/color"
 	_ "image/png"

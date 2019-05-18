@@ -13,7 +13,7 @@ import (
 	"github.com/droundy/goopt"
 	"github.com/austinfromboston/pixelslinger/beaglebone"
 	"github.com/austinfromboston/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/opc"
 	"github.com/pkg/profile"
 	"github.com/austinfromboston/pixelslinger/potty"

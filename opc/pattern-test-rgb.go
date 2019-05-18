@@ -7,8 +7,8 @@ package opc
 //   For the rest of the pixels it makes a slowly moving red and black sine wave.
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"time"
 )
 

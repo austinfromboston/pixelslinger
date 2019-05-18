@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/midi"
 )
 
 func main() {

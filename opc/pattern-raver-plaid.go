@@ -4,9 +4,9 @@ package opc
 //   A rainbowy pattern with moving diagonal black stripes
 
 import (
-	"github.com/longears/pixelslinger/colorutils"
-	"github.com/longears/pixelslinger/config"
-	"github.com/longears/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/colorutils"
+	"github.com/austinfromboston/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/midi"
 	"math"
 	"time"
 )
@@ -76,7 +76,7 @@ func MakePatternRaverPlaid(locations []float64) ByteThread {
 
 				// Make diagonal black stripes using a slowly shifting sine wave
 				// For more details on the "colorutils" package:
-				//    http://godoc.org/github.com/longears/pixelslinger/colorutils
+				//    http://godoc.org/github.com/austinfromboston/pixelslinger/colorutils
 				pct_jittered := colorutils.PosMod2((pct * 77), 37)
 				blackstripes := colorutils.Cos(pct_jittered, t*0.05, 1, -1.5, 1.5) // offset, period, minn, maxx
 				blackstripes_offset := colorutils.Cos(t, 0.9, 60, -0.5, 3)         // slowly change the width of the stripes over a minute
