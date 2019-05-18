@@ -8,7 +8,7 @@ import (
 const (
 	FLASH_PAD         = midi.LPD8_PAD1
 	TWINKLE_PAD       = midi.LPD8_PAD2
-	FLUSH_PAD         = midi.LPD8_PAD3 // todo
+	RIPPLE_PAD        = midi.LPD8_PAD3
 	SLOWMO_PAD        = midi.LPD8_PAD4
 	BLINK_CIRCLE_PAD  = midi.LPD8_PAD5
 	BLINK_ARCH_PAD    = midi.LPD8_PAD6
@@ -25,6 +25,8 @@ const (
 	MORPH_KNOB  = midi.LPD8_KNOB5 //   pattern (diamond, white)
 	HUE_KNOB    = midi.LPD8_KNOB6 //   pattern (diamond, fire, white)
 	DESAT_KNOB  = midi.LPD8_KNOB7 // effect
+	PlAYER2_KNOB  = midi.LPD8_KNOB8 // effect
+
 )
 
 // knob starting values before they have been moved
