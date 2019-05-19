@@ -35,6 +35,29 @@ type MyImage struct {
 	pixels [][]*MyColor // 2d array, [x][y]
 }
 
+func interpolateSunLocation(timeOfDay float64, sunriseTime float64, locations []float64) []float64 {
+	sunArcLocations := []int{2340, 2460, 2580, 2700, 2920, 3040, 3160, 3280, 3400, 3520, 3640, 3760, 3880, 4000, 4120, 4240};
+	//sunArcLocations := []int{2459, 2579, 2699, 2819, 2939, 3059, 3179, 3299, 3319, 3480, 3600, 3720, 3840, 3960, 4080, 4200, 4320};
+	rawLocation := int(colorutils.EaseRemapAndClamp(timeOfDay, sunriseTime + 0.2, 0.55+sunriseTime, float64(sunArcLocations[0]), float64(sunArcLocations[len(sunArcLocations)-1])))
+	for i, l := range sunArcLocations[:len(sunArcLocations)-1] {
+		nextLocation := sunArcLocations[i + 1]
+		if rawLocation > l && rawLocation <= nextLocation {
+			priorX := locations[l*3+0] / 2
+			priorY := locations[l*3+1] / 2
+			priorZ := locations[l*3+2] / 2
+			nextX := locations[nextLocation*3+0] / 2
+			nextY := locations[nextLocation*3+1] / 2
+			nextZ := locations[nextLocation*3+2] / 2
+			interpolatedX := colorutils.EaseRemapAndClamp(float64(rawLocation), float64(l), float64(nextLocation), priorX, nextX)
+			interpolatedY := colorutils.EaseRemapAndClamp(float64(rawLocation), float64(l), float64(nextLocation), priorY, nextY)
+			interpolatedZ := colorutils.EaseRemapAndClamp(float64(rawLocation), float64(l), float64(nextLocation), priorZ, nextZ)
+			return []float64{interpolatedX, interpolatedY, interpolatedZ};
+		}
+
+	}
+	return []float64{0, 0, 0};
+}
+
 // Init the MyImage pixel array, creating MyColor objects
 // from the data in the given image (from the built-in image package).
 // HSV is computed here also for each pixel.
@@ -210,7 +233,7 @@ func MakePatternSunset(locations []float64) ByteThread {
 				case timeOfDay < 0.25+SUNRISE_TIME:
 					sunHeight = colorutils.EaseRemapAndClamp(timeOfDay, 0.25-SUNRISE_TIME, 0.25+SUNRISE_TIME, 0, 1)
 				case timeOfDay < 0.75-SUNRISE_TIME:
-					sunHeight = 1
+					sunHeight = 3
 				case timeOfDay < 0.75+SUNRISE_TIME:
 					sunHeight = colorutils.EaseRemapAndClamp(timeOfDay, 0.75-SUNRISE_TIME, 0.75+SUNRISE_TIME, 1, 0)
 				default:
@@ -221,7 +244,7 @@ func MakePatternSunset(locations []float64) ByteThread {
 				r, g, b := myImage.getInterpolatedColor(timeOfDay+0.5, 1-zp, "tile")
 
 				// stars
-				if ii >= 160 {
+				if ii >= 0 {
 					// day/night
 					starAmt := math.Pow(1-sunHeight, STAR_FADE_EXP)
 					// fade at horizon
@@ -236,17 +259,23 @@ func MakePatternSunset(locations []float64) ByteThread {
 				}
 
 				// sun circle
-				if ii < 160 {
-					pct := float64(ii) / 160.0
-					pct = pct * 2
-					if pct > 1 {
-						pct = 2 - pct
+				SUN_RADIUS := float64(0.3)
+				if timeOfDay > SUNRISE_TIME && timeOfDay < 0.75+SUNRISE_TIME {
+					interpolatedLocation := interpolateSunLocation(timeOfDay, SUNRISE_TIME, locations)
+					// the distance equation for xyz coords
+					distance := math.Sqrt(math.Pow(interpolatedLocation[0] - x,2 ) + math.Pow(interpolatedLocation[1] - y, 2) + math.Pow(interpolatedLocation[2] - z, 2))
+					if distance < SUN_RADIUS && ii > 2340 {
+						pct := float64(ii) / 160.0
+						pct = pct * 2
+						if pct > 1 {
+							pct = 2 - pct
+						}
+						val := colorutils.Contrast(pct, colorutils.Remap(sunHeight, 0, 1, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2), 1/SUN_SOFT_EDGE)
+						val = colorutils.Clamp(1-val, 0, 1)
+						r = val * 1.13
+						g = val * 0.85
+						b = val * 0.65
 					}
-					val := colorutils.Contrast(pct, colorutils.Remap(sunHeight, 0, 1, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2), 1/SUN_SOFT_EDGE)
-					val = colorutils.Clamp(1-val, 0, 1)
-					r = val * 1.13
-					g = val * 0.85
-					b = val * 0.65
 				}
 
 				bytes[ii*3+0] = colorutils.FloatToByte(r)

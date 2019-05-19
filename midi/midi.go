@@ -219,7 +219,10 @@ func GetMidiMessageStream(path string) chan *MidiMessage {
 // Assumes the file is a special device file which will never hit EOF.
 // If the file can't be opened, it will keep trying once a second forver until it succeeds.
 func tenaciousFileByteStreamerThread(path string, outCh chan byte) {
-	go remote.GetRemoteServer(outCh)
+	if path == "socket" {
+		go remote.GetRemoteServer(outCh)
+		return
+	}
 	for {
 		file, err := os.Open(path)
 		if err != nil {

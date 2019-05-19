@@ -38,6 +38,7 @@ var DEST = goopt.String([]string{"-d", "--dest"}, "localhost", "destination (one
 var FPS = goopt.Int([]string{"-f", "--fps"}, 40, "max frames per second")
 var SECONDS = goopt.Int([]string{"-n", "--seconds"}, 0, "quit after this many seconds")
 var ONCE = goopt.Flag([]string{"-o", "--once"}, []string{}, "quit after one frame", "")
+var MIDI_SOURCE = goopt.String([]string{"-M", "--midi-source"}, "/dev/midi1", "midi device buffer (linux) or 'socket' (to use socket listener)")
 
 // Parse the command line flags.  If invalid, show help and quit.
 // Add default ports if needed.
@@ -142,7 +143,9 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 
 	// set up midi
 	midiPath := ""
-	if _, err := os.Stat("/dev/midi1"); err == nil {
+	if *MIDI_SOURCE == "socket" {
+		midiPath = "socket"
+	} else if _, err := os.Stat("/dev/midi1"); err == nil {
 		// path/to/whatever exists
 		midiPath = "/dev/midi1"
 	} else if os.IsNotExist(err) {
