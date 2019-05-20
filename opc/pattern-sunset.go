@@ -153,14 +153,14 @@ func MakePatternSunset(locations []float64) ByteThread {
 		IMG_PATH            = "images/sky4_square.png"
 		DAY_LENGTH          = 20.0 // seconds
 		SUN_SOFT_EDGE       = 0.2
-		STAR_BRIGHTNESS_EXP = 2.7 // higher number means fewer bright stars
-		STAR_THRESH         = 0.95
+		STAR_BRIGHTNESS_EXP = 1.8 // higher number means fewer bright stars
+		STAR_THRESH         = 0.70
 		STAR_CONTRAST       = 3.0
-		STAR_FADE_EXP       = 4.0 // higher numbers keep stars from showing during sunrise/sunset
+		STAR_FADE_EXP       = 3.0 // higher numbers keep stars from showing during sunrise/sunset
 	)
 
 	// make persistant random values
-	rng := rand.New(rand.NewSource(9))
+	rng := rand.New(rand.NewSource(19))
 	randomValues := make([]float64, len(locations)/3)
 	for ii := range randomValues {
 		randomValues[ii] = math.Pow(rng.Float64(), STAR_BRIGHTNESS_EXP)
@@ -227,6 +227,7 @@ func MakePatternSunset(locations []float64) ByteThread {
 				// compute sun height in range 0 to 1
 				sunHeight := 0.0
 				SUNRISE_TIME := 0.2 // range 0 to 0.25
+				SUNSET_TIME := 0.75 + SUNRISE_TIME
 				switch {
 				case timeOfDay < 0.25-SUNRISE_TIME:
 					sunHeight = 0
@@ -234,7 +235,7 @@ func MakePatternSunset(locations []float64) ByteThread {
 					sunHeight = colorutils.EaseRemapAndClamp(timeOfDay, 0.25-SUNRISE_TIME, 0.25+SUNRISE_TIME, 0, 1)
 				case timeOfDay < 0.75-SUNRISE_TIME:
 					sunHeight = 3
-				case timeOfDay < 0.75+SUNRISE_TIME:
+				case timeOfDay < SUNSET_TIME:
 					sunHeight = colorutils.EaseRemapAndClamp(timeOfDay, 0.75-SUNRISE_TIME, 0.75+SUNRISE_TIME, 1, 0)
 				default:
 					sunHeight = 0
@@ -244,7 +245,7 @@ func MakePatternSunset(locations []float64) ByteThread {
 				r, g, b := myImage.getInterpolatedColor(timeOfDay+0.5, 1-zp, "tile")
 
 				// stars
-				if ii >= 0 {
+				if (timeOfDay < SUNRISE_TIME + 0.1 || timeOfDay > SUNSET_TIME - 0.2) {
 					// day/night
 					starAmt := math.Pow(1-sunHeight, STAR_FADE_EXP)
 					// fade at horizon
@@ -260,18 +261,23 @@ func MakePatternSunset(locations []float64) ByteThread {
 
 				// sun circle
 				SUN_RADIUS := float64(0.3)
-				if timeOfDay > SUNRISE_TIME && timeOfDay < 0.75+SUNRISE_TIME {
-					interpolatedLocation := interpolateSunLocation(timeOfDay, SUNRISE_TIME, locations)
-					// the distance equation for xyz coords
-					distance := math.Sqrt(math.Pow(interpolatedLocation[0] - x,2 ) + math.Pow(interpolatedLocation[1] - y, 2) + math.Pow(interpolatedLocation[2] - z, 2))
-					if distance < SUN_RADIUS && ii > 2340 {
+				if timeOfDay > SUNRISE_TIME && timeOfDay < SUNSET_TIME {
+					sunAngle := colorutils.RemapAndClamp(timeOfDay, SUNRISE_TIME,  SUNSET_TIME, 0 - (math.Pi * 0.25), math.Pi + (math.Pi * 0.5))
+					sunX := math.Cos(sunAngle) * max_coord_x / 4
+					//sunY := min_coord_y / 2
+					sunZ := math.Sin(sunAngle) * max_coord_z / 4
+
+					distance := math.Sqrt(math.Pow(sunX - x,2 ) + math.Pow(sunZ - z, 2))
+					if distance < SUN_RADIUS {
 						pct := float64(ii) / 160.0
 						pct = pct * 2
 						if pct > 1 {
 							pct = 2 - pct
 						}
-						val := colorutils.Contrast(pct, colorutils.Remap(sunHeight, 0, 1, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2), 1/SUN_SOFT_EDGE)
-						val = colorutils.Clamp(1-val, 0, 1)
+						//val := colorutils.Contrast(pct, colorutils.Remap(sunHeight, 0, 1, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2), 1/SUN_SOFT_EDGE)
+						//val = colorutils.Clamp(1-val, 0, 1)
+						val := colorutils.Remap(distance, 0, SUN_RADIUS, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2)
+						//val := colorutils.Remap(distance, 0, SUN_RADIUS,1+SUN_SOFT_EDGE*2, -SUN_SOFT_EDGE*2)
 						r = val * 1.13
 						g = val * 0.85
 						b = val * 0.65
