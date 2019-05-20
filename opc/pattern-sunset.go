@@ -269,15 +269,7 @@ func MakePatternSunset(locations []float64) ByteThread {
 
 					distance := math.Sqrt(math.Pow(sunX - x,2 ) + math.Pow(sunZ - z, 2))
 					if distance < SUN_RADIUS {
-						pct := float64(ii) / 160.0
-						pct = pct * 2
-						if pct > 1 {
-							pct = 2 - pct
-						}
-						//val := colorutils.Contrast(pct, colorutils.Remap(sunHeight, 0, 1, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2), 1/SUN_SOFT_EDGE)
-						//val = colorutils.Clamp(1-val, 0, 1)
 						val := colorutils.Remap(distance, 0, SUN_RADIUS, -SUN_SOFT_EDGE*2, 1+SUN_SOFT_EDGE*2)
-						//val := colorutils.Remap(distance, 0, SUN_RADIUS,1+SUN_SOFT_EDGE*2, -SUN_SOFT_EDGE*2)
 						r = val * 1.13
 						g = val * 0.85
 						b = val * 0.65
