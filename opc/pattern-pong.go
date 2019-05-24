@@ -25,7 +25,7 @@ const (physicsUpdateIntervalMiliSeconds = 25
 	PLAY_TO_SCORE = 9
 	DISPLAY_SCORE_SECONDS = 3.2
 	DISPLAY_POST_SECONDS = 5
-	SPIRAL_DISPLAY=0.6
+	SPIRAL_DISPLAY=0.4
 	PADDLE_BOX_EASE=0.25
 	)
 
@@ -149,8 +149,8 @@ func handlePlayerInput(state aState, midiState *midi.MidiState) aState {
 	//if state.rightPaddlePos < 0 {state.rightPaddlePos = 0}
 	//if state.leftPaddlePos < 0 {state.leftPaddlePos = 0}
 
-	state.leftPaddlePos = 1-float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0 //1- value to compensate for mirror effect
-	state.rightPaddlePos = float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
+	state.rightPaddlePos = 1-float64(midiState.ControllerValues[config.MORPH_KNOB]) / 127.0 //1- value to compensate for mirror effect
+	state.leftPaddlePos = float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
 
 	return state
 }
@@ -167,9 +167,9 @@ func simulateBall(state aState, t float64) aState{
 	r := math.Sqrt(xsq+ysq)
 	theta := math.Atan2(state.ballPosY, state.ballPosX)
 	rShiftBase := 0.000001
-	rShiftSpeed:= 0.0000001 * gameTimeElapsed
+	rShiftSpeed:= 0.00000001 * gameTimeElapsed
 	thetaShiftBase := 0.00005
-	thetaShiftSpeed:= 0.000005 * gameTimeElapsed
+	thetaShiftSpeed:= 0.0000001 * gameTimeElapsed
 	rShiftAmt := (rShiftBase+rShiftSpeed) * state.ballVert
 	// i didive the shift amount by 2pi(19/40)r, so that
 	// to the time to travel the segment length is proportional to the radius.
