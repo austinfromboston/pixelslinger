@@ -160,6 +160,7 @@ func simulateBall(state aState, t float64) aState{
 	if state.lastGameStart == -1 { state.lastGameStart = t}
 
 	gameTimeElapsed := t- state.lastGameStart
+    _ = gameTimeElapsed
 	//fmt.Println("gameTimeElapsed", gameTimeElapsed)
 	//fmt.Print(state)
 	xsq := math.Pow(state.ballPosX, 2)
@@ -167,9 +168,11 @@ func simulateBall(state aState, t float64) aState{
 	r := math.Sqrt(xsq+ysq)
 	theta := math.Atan2(state.ballPosY, state.ballPosX)
 	rShiftBase := 0.000001
-	rShiftSpeed:= 0.00000001 * gameTimeElapsed
+	//rShiftSpeed:= 0.00000001 * gameTimeElapsed
+	rShiftSpeed:= 0.0
 	thetaShiftBase := 0.00005
-	thetaShiftSpeed:= 0.0000001 * gameTimeElapsed
+	//thetaShiftSpeed:= 0.0000001 * gameTimeElapsed
+	thetaShiftSpeed:= 0.0
 	rShiftAmt := (rShiftBase+rShiftSpeed) * state.ballVert
 	// i didive the shift amount by 2pi(19/40)r, so that
 	// to the time to travel the segment length is proportional to the radius.
