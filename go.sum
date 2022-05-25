@@ -1,0 +1,12 @@
+github.com/austinfromboston/pixelslinger v0.0.0-20190310030656-80b37814348b h1:lyOgC74R0CTsuU68xkZULTqO90Qve7F9U+vhVBFdS5w=
+github.com/austinfromboston/pixelslinger v0.0.0-20190310030656-80b37814348b/go.mod h1:sAcM4wOn/+xCii/46+sNV+rdo+Lg4ezjFKe10ri3v2c=
+github.com/austinfromboston/pixelslinger v0.0.0-20190917042638-92cbbb011e66 h1:p6cuV82qdZOce0mAfmMdwGL4qfOBGleo3q8q1MB9sbA=
+github.com/austinfromboston/pixelslinger v0.0.0-20190917042638-92cbbb011e66/go.mod h1:sAcM4wOn/+xCii/46+sNV+rdo+Lg4ezjFKe10ri3v2c=
+github.com/droundy/goopt v0.0.0-20220217183150-48d6390ad4d1 h1:6PKU05V7zJIJlTBq7AnEIrLVEUIYF4NjTU2a28Ho6ko=
+github.com/droundy/goopt v0.0.0-20220217183150-48d6390ad4d1/go.mod h1:ytRJ64WkuW4kf6/tuYqBATBCRFUP8X9+LDtgcvE+koI=
+github.com/longears/pixelslinger v0.0.0-20180425162057-028b30867dee h1:+BAt6PNcfhmkWXHflBwUaBsYy3SfeirOo2F1A2jfy4U=
+github.com/longears/pixelslinger v0.0.0-20180425162057-028b30867dee/go.mod h1:kbL9R9Ok547ywf52lQbb1oJNk9/5US1hcEl/3pywOX0=
+github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
+github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
+github.com/pkg/profile v1.6.0 h1:hUDfIISABYI59DyeB3OTay/HxSRwTQ8rB/H83k6r5dM=
+github.com/pkg/profile v1.6.0/go.mod h1:qBsxPvzyUincmltOk6iyRVxHYg4adc0OFOv72ZdLa18=
