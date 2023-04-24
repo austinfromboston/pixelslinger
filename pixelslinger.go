@@ -5,23 +5,24 @@ package main
 
 import (
 	"fmt"
+	"github.com/austinfromboston/pixelslinger/config"
+	"github.com/austinfromboston/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/opc"
+	"github.com/austinfromboston/pixelslinger/potty"
+	"github.com/droundy/goopt"
+	"github.com/pkg/profile"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
-	"github.com/droundy/goopt"
-	"github.com/austinfromboston/pixelslinger/config"
-	"github.com/austinfromboston/pixelslinger/midi"
-	"github.com/austinfromboston/pixelslinger/opc"
-	"github.com/pkg/profile"
-	"github.com/austinfromboston/pixelslinger/potty"
 )
 
 //const ONBOARD_LED_HEARTBEAT = 0
 //const ONBOARD_LED_MIDI = 1
 
 const SPI_MAGIC_WORD = "spi"
+const ARTNET_MAGIC_WORD = "artnet"
 const PRINT_MAGIC_WORD = "print"
 const DEVNULL_MAGIC_WORD = "/dev/null"
 const LOCALHOST = "localhost"
@@ -34,7 +35,7 @@ func init() {
 // these are pointers to the actual values from the command line parser
 var LAYOUT_FN = goopt.String([]string{"-l", "--layout"}, "...", "layout file (required)")
 var SOURCE = goopt.String([]string{"-s", "--source"}, "spatial-stripes", "pixel source (either a pattern name or "+LOCALHOST+"[:port])")
-var DEST = goopt.String([]string{"-d", "--dest"}, "localhost", "destination (one of "+PRINT_MAGIC_WORD+", "+SPI_MAGIC_WORD+", "+DEVNULL_MAGIC_WORD+", or hostname[:port])")
+var DEST = goopt.String([]string{"-d", "--dest"}, "localhost", "destination (one of "+PRINT_MAGIC_WORD+", "+SPI_MAGIC_WORD+", "+DEVNULL_MAGIC_WORD+", "+ARTNET_MAGIC_WORD+"or hostname[:port])")
 var FPS = goopt.Int([]string{"-f", "--fps"}, 40, "max frames per second")
 var SECONDS = goopt.Int([]string{"-n", "--seconds"}, 0, "quit after this many seconds")
 var ONCE = goopt.Flag([]string{"-o", "--once"}, []string{}, "quit after one frame", "")
@@ -107,6 +108,10 @@ func parseFlags() (nPixels int, sourceThread, effectThread, pottyEffectThread, d
 		destThread = opc.MakeSendToScreenThread()
 	case SPI_MAGIC_WORD:
 		destThread = opc.MakeSendToLPD8806Thread(SPI_FN)
+	case ARTNET_MAGIC_WORD:
+		destination := "localhost"
+		destThread = opc.MakeSendToArtnetThread(destination)
+
 	default:
 		// add default port if needed
 		if !strings.Contains(*DEST, ":") {
@@ -163,7 +168,6 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	}
 	fmt.Println(midiState)
 
-
 	// launch the threads
 	go sourceThread(bytesToFillChan, toEffectChan, &midiState)
 	go effectThread(toEffectChan, toPottyEffectChan, &midiState)
@@ -196,7 +200,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 		framesSinceLastPrint += 1
 		if frameStartTime > lastPrintTime+1 {
 			lastPrintTime = frameStartTime
-			fmt.Printf("[mainLoop] %f ms/frame (%d fps)\n", 1000.0/float64(framesSinceLastPrint), framesSinceLastPrint)
+			fmt.Printf("[%s] [mainLoop] %f ms/frame (%d fps)\n", time.Now().Format("03:04:05"), 1000.0/float64(framesSinceLastPrint), framesSinceLastPrint)
 			framesSinceLastPrint = 0
 			// toggle LED
 			//beaglebone.SetOnboardLED(ONBOARD_LED_HEARTBEAT, flipper)

@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/austinfromboston/pixelslinger/midi"
+	"github.com/jsimonetti/go-artnet/packet"
 	"math"
 	"net"
 	"os"
@@ -38,17 +39,17 @@ func init() {
 		"spatial-stripes": MakePatternSpatialStripes,
 		"square":          MakePatternSquare,
 		//"listener":        MakePatternListener,
-		"sunset":          MakePatternSunset,
-		"test":            MakePatternTest,
-		"test-gamma":      MakePatternTestGamma,
-		"test-rgb":        MakePatternTestRGB,
-		"white":           MakePatternWhite,
-		"aqua":			   MakePatternAqua,
-		"aquab":           MakePatternAquaB,
-		"colorbox":		   MakePatternSpatialColorBox,
-		"archimedes":      MakePatternArchimedes,
-		"pong":		   	MakePatternPolarPong,
-		"77m":          MakePattern77Million,
+		"sunset":     MakePatternSunset,
+		"test":       MakePatternTest,
+		"test-gamma": MakePatternTestGamma,
+		"test-rgb":   MakePatternTestRGB,
+		"white":      MakePatternWhite,
+		"aqua":       MakePatternAqua,
+		"aquab":      MakePatternAquaB,
+		"colorbox":   MakePatternSpatialColorBox,
+		"archimedes": MakePatternArchimedes,
+		"pong":       MakePatternPolarPong,
+		"77m":        MakePattern77Million,
 	}
 }
 
@@ -279,6 +280,90 @@ func MakeSendToLPD8806Thread(spiFn string) ByteThread {
 			bytesOut <- bytes
 		}
 	}
+}
+
+func MakeSendToArtnetThread(hostname string) ByteThread {
+	STRIP_LENGTH := 120
+	BYTE_SIZE := STRIP_LENGTH * 3
+	STRIP_COUNT := 18
+	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
+		fmt.Println("[artnet.SendToArtnetThread] starting up")
+
+		//var conn net.Conn
+		dst := fmt.Sprintf("%s:%d", "127.0.0.1", packet.ArtNetPort)
+		node, _ := net.ResolveUDPAddr("udp", dst)
+		src := fmt.Sprintf("%s:%d", "127.0.0.1", 10001)
+		localAddr, _ := net.ResolveUDPAddr("udp", src)
+
+		conn, err := net.DialUDP("udp", localAddr, node)
+		//conn, err := net.ListenUDP("udp", node)
+		if err != nil {
+			fmt.Printf("error opening udp: %s\n", err)
+			return
+		}
+
+		// set channels 1 and 4 to FL, 2, 3 and 5 to FD
+		// on my colorBeam this sets output 1 to fullbright red with zero strobing
+
+		//log := artnet.NewDefaultLogger()
+		//c := artnet.NewController("controller-1", ip, log)
+		// make a new net.Ip object for localhost
+		//nc := artnet.NodeConfig{Name: "local", IP: net.IP{127, 0, 0, 1}}
+		//c.updateNode(nc)
+		//c.Start()
+
+		gamma_lookup := make([]byte, 256)
+		for ii := 0; ii < 256; ii++ {
+			floatVal := math.Pow(float64(ii)/255, GAMMA)
+			if floatVal >= 1 {
+				gamma_lookup[ii] = 255
+			} else {
+				gamma_lookup[ii] = byte(floatVal * 256)
+			}
+		}
+
+		for bytes := range bytesIn {
+			// ok, at this point the connection is good
+
+			// gamma correct
+			// HACK: change this later when we decide if OPC should have
+			// pixels in perceptual or linear space
+			for ii := range bytes {
+				bytes[ii] = gamma_lookup[bytes[ii+0]]
+			}
+
+			for stripIdx := 0; stripIdx < STRIP_COUNT; stripIdx++ {
+				//_, err = conn.Write(bytes)
+				bytesToSend := [512]byte{}
+				stripStart := stripIdx * BYTE_SIZE
+				for j := 0; j < 360; j++ {
+					bytesToSend[j] = bytes[stripStart+j]
+				}
+				p := &packet.ArtDMXPacket{
+					Sequence: 1,
+					SubUni:   uint8(stripIdx),
+					Net:      0,
+					Data:     bytesToSend,
+				}
+
+				b, err := p.MarshalBinary()
+
+				// send actual pixel values
+				_, err = conn.Write(b)
+				if err != nil {
+					fmt.Printf("error writing packet: %s\n", err)
+					return
+				}
+				//fmt.Printf("packet sent, wrote %d bytes\n", n)
+
+			}
+			//fmt.Printf("block sent, total size %d\n", len(bytes))
+
+			bytesOut <- bytes
+
+		}
+	}
+
 }
 
 // Return a ByteThread which sends the bytes out as OPC messages to the given ipPort.
