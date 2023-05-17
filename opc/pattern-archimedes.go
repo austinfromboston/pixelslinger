@@ -7,13 +7,13 @@ package opc
 
 import (
 	"github.com/austinfromboston/pixelslinger/colorutils"
-	"github.com/austinfromboston/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/config"
-	"github.com/lucasb-eyer/go-colorful"
+	"github.com/austinfromboston/pixelslinger/midi"
+	colorful "github.com/lucasb-eyer/go-colorful"
 	"math"
 	"math/rand"
 	"time"
-    //"fmt"
+	//"fmt"
 )
 
 func Spiral(x, y, t, SPIRAL_tightness, SPIRAL_speed, SPIRAL_thickness, SPIRAL_thickness_gradient float64, SPIRAL_rings int) float64 {
@@ -42,8 +42,8 @@ func Spiral(x, y, t, SPIRAL_tightness, SPIRAL_speed, SPIRAL_thickness, SPIRAL_th
 }
 
 func MakePatternArchimedes(locations []float64) ByteThread {
-	const(
-		SPEED_BASE = 2
+	const (
+		SPEED_BASE = 1
 	)
 
 	// get bounding box
@@ -82,56 +82,52 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 			for ii := 0; ii < n_pixels; ii++ {
 				//--------------------------------------------------------------------------------
 
-				// make moving stripes for x, y, and z
 				x := locations[ii*3+0]
 				y := locations[ii*3+1]
 				z := locations[ii*3+2]
-				y = z //actually need to target x-z plane
 
-				//noi := math.Abs(rand.Float64() *0.000000000000001)
-
-                dirKnob := (float64(midiState.ControllerValues[config.MORPH_KNOB]) - 64.0)/8.0  
-
-				//noi := 1.0
-				//reverse_periodicity := 20.0
-				//reverse_dur := 5.0
-				//reverse_mod := math.Mod(t, reverse_periodicity)
-				// first half
-				//if reverse_mod < reverse_dur {
-				//	noi = -1 * reverse_mod
-				//}
-				//second half
-				//if reverse_mod > reverse_dur && reverse_mod < 2*reverse_dur {
-				//	noi = -1 * (2*reverse_dur - reverse_mod)
-				//}
-				//if reverse_mod > 2*reverse_dur && reverse_mod < 2*reverse_dur+1 {
-				//	noi = math.Pow(reverse_mod-2*reverse_dur, 0.2)
-				//}
-				
-                noi := dirKnob
-				//fmt.Println(noi)
-				noii := math.Abs(rand.Float64() * 0.0000000000001)
-				//fmt.Println(noii)
-				//noii = 0.0
-			    speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
-			    s1 := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
-			    player2Knob := float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
+				// dirKnob controls spiral tightness and clockwiseness if negative
+				dirKnob := (float64(midiState.ControllerValues[config.MORPH_KNOB]) - 64.0) / 8.0
+				// speedKnob controls speed
+				speedKnob := float64(midiState.ControllerValues[config.SPEED_KNOB]) / 127.0
+				// DesatKnob choose color palette or hue. N.B. I want the Hue knob for x-y changes since i need a pair next to each other
+				s1 := float64(midiState.ControllerValues[config.DESAT_KNOB]) / 127.0
+				// Player2knob controls x-shift N.B. I want the Hue knob for x-y changes since i need a pair next to each other
+				player2Knob := float64(midiState.ControllerValues[config.PlAYER2_KNOB]) / 127.0
+				// Hueknob controls y-shift N.B. I want the Hue knob for x-y changes since i need a pair next to each other
 				hueKnob := float64(midiState.ControllerValues[config.HUE_KNOB]) / 127.0
+				// eyelid knob controls 3d orientation.
+				eyelidKnob := float64(midiState.ControllerValues[config.EYELID_KNOB]) / 127.0
 
-				xShift := player2Knob*max_coord_x - (max_coord_x/2)
-				yShift := hueKnob*max_coord_z - (max_coord_z/2)
+				dirKnob = 1.0
+				//eyelidKnob = math.Sin(t) // changing eyelid knob
+				//eyelidKnob = -1
+				//eyelidKnob = -0.5
+				eyelidKnob = 0.0
+				//eyelidKnob = 0.5
+				//eyelidKnob = 1.0
 
-				speed1 := speedKnob * SPEED_BASE * 2    + noii
-				speed2 := speedKnob * SPEED_BASE * 4    + noii
-				speed3 := speedKnob * SPEED_BASE * 8    + noii
-				speed4 := speedKnob * SPEED_BASE * 0.5  + noii
-				speed5 := speedKnob * SPEED_BASE * 0.25 + noii
+				noi := dirKnob
+				noii := math.Abs(rand.Float64() * 0.0000000000001)
 
-			    spiral1 := Spiral(x+xShift, y-yShift, t, 0.1*noi,  speed1, 0.05, 0.9, 5)
-				spiral2 := Spiral(x+xShift, y-yShift, t, -0.1*noi, speed2 , 0.05, 0.5, 5)
-				spiral3 := Spiral(x+xShift, y-yShift, t, -0.05*noi,speed3 , 0.1, 0.3, 8)
-				spiral4 := Spiral(x+xShift, y-yShift, t, 0.5*noi,  speed4 , 0.5, 0.4, 5)
-				spiral5 := Spiral(x+xShift, y-yShift, t, -0.5*noi, speed5 , 0.5, 0.4, 5)
+				xShift := player2Knob*max_coord_x - (max_coord_x / 2)
+				yShift := hueKnob*max_coord_z - (max_coord_z / 2)
+
+				// define a 3d rotation
+				y = (eyelidKnob * y) + ((1 - eyelidKnob) * z)
+				x = (eyelidKnob * x) + ((1 - eyelidKnob) * z)
+
+				speed1 := speedKnob*SPEED_BASE*2 + noii
+				speed2 := speedKnob*SPEED_BASE*4 + noii
+				speed3 := speedKnob*SPEED_BASE*8 + noii
+				speed4 := speedKnob*SPEED_BASE*0.5 + noii
+				speed5 := speedKnob*SPEED_BASE*0.25 + noii
+
+				spiral1 := Spiral(x+xShift, y-yShift, t, 0.1*noi, speed1, 0.05, 0.9, 5)
+				spiral2 := Spiral(x+xShift, y-yShift, t, -0.1*noi, speed2, 0.05, 0.5, 5)
+				spiral3 := Spiral(x+xShift, y-yShift, t, -0.05*noi, speed3, 0.1, 0.3, 8)
+				spiral4 := Spiral(x+xShift, y-yShift, t, 0.5*noi, speed4, 0.5, 0.4, 5)
+				spiral5 := Spiral(x+xShift, y-yShift, t, -0.5*noi, speed5, 0.5, 0.4, 5)
 
 				var (
 					//White = colorful.LinearRgb(1, 1, 1)
