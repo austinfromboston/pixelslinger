@@ -40,6 +40,7 @@ var FPS = goopt.Int([]string{"-f", "--fps"}, 40, "max frames per second")
 var SECONDS = goopt.Int([]string{"-n", "--seconds"}, 0, "quit after this many seconds")
 var ONCE = goopt.Flag([]string{"-o", "--once"}, []string{}, "quit after one frame", "")
 var MIDI_SOURCE = goopt.String([]string{"-M", "--midi-source"}, "/dev/midi1", "midi device buffer (linux) or 'socket' (to use socket listener)")
+var NET_PROTO = goopt.String([]string{"-P", "--protocol"}, "opc", "opc (openpixelcontrol) or 'artnet'")
 
 // Parse the command line flags.  If invalid, show help and quit.
 // Add default ports if needed.
@@ -108,16 +109,17 @@ func parseFlags() (nPixels int, sourceThread, effectThread, pottyEffectThread, d
 		destThread = opc.MakeSendToScreenThread()
 	case SPI_MAGIC_WORD:
 		destThread = opc.MakeSendToLPD8806Thread(SPI_FN)
-	case ARTNET_MAGIC_WORD:
-		destination := "localhost"
-		destThread = opc.MakeSendToArtnetThread(destination)
 
 	default:
-		// add default port if needed
-		if !strings.Contains(*DEST, ":") {
-			*DEST += ":7890"
+		if *NET_PROTO == ARTNET_MAGIC_WORD {
+			destThread = opc.MakeSendToArtnetThread(*DEST)
+		} else {
+			// add default port if needed
+			if !strings.Contains(*DEST, ":") {
+				*DEST += ":7890"
+			}
+			destThread = opc.MakeSendToOpcThread(*DEST)
 		}
-		destThread = opc.MakeSendToOpcThread(*DEST)
 	}
 
 	return // returns nPixels, sourceThread, destThread
@@ -200,7 +202,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 		framesSinceLastPrint += 1
 		if frameStartTime > lastPrintTime+1 {
 			lastPrintTime = frameStartTime
-			fmt.Printf("[%s] [mainLoop] %f ms/frame (%d fps)\n", time.Now().Format("03:04:05"), 1000.0/float64(framesSinceLastPrint), framesSinceLastPrint)
+			fmt.Printf("[%s] [mainLoop] %f ms/frame (%d fps)\n", time.Now().Format("03:04:05j"), 1000.0/float64(framesSinceLastPrint), framesSinceLastPrint)
 			framesSinceLastPrint = 0
 			// toggle LED
 			//beaglebone.SetOnboardLED(ONBOARD_LED_HEARTBEAT, flipper)
