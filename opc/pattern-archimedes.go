@@ -99,23 +99,41 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 				// eyelid knob controls 3d orientation.
 				eyelidKnob := float64(midiState.ControllerValues[config.EYELID_KNOB]) / 127.0
 
-				dirKnob = 1.0
-				//eyelidKnob = math.Sin(t) // changing eyelid knob
-				//eyelidKnob = -1
-				//eyelidKnob = -0.5
-				eyelidKnob = 0.0
-				//eyelidKnob = 0.5
-				//eyelidKnob = 1.0
+				// WALK-AWAY-MODE
+				if eyelidKnob >= 0.99 {
+					// simulate someone twiddling this knob.
+					eyelidKnob = math.Abs(math.Sin(0.01*t)) * math.Abs(math.Sin(0.02*t))
+				}
 
+				// define a 3d rotation
+				// when eye= 0.0 --> x|y axis
+				// when eye= 0.5 --> z|y axis
+				// when eye= 1.0 --> z|x axis
+				// NOTE: the variables x, y, z start as positions
+				// then x_p and y_p  (prime) become input for the spiral that are a linear combination of the planes
+				var (
+					xP = 0.0        // initially
+					yP = 0.0        // initially
+					c  = 2.0        // because we split eyelid into 2 stops (0, 0.5) (0.5, 1.0), we need a compensation factor
+					e  = eyelidKnob // convenience, readability
+					ec = e * c      // compensated eyelid
+				)
+				if e >= 0 && e < 0.5 {
+					// use the first half ot the eyelid to tweak x_prime between x<->z planes
+					xP = ((1 - ec) * x) + (ec * z)
+					yP = y
+				} else if e >= 0.5 && e <= 1.0 {
+					// use the second half ot the eyelid to tweak y_prime between y<->x planes
+					xP = z
+					yP = ((2 - ec) * y) + ((ec - 1) * x)
+				}
+
+				// define noise.
 				noi := dirKnob
 				noii := math.Abs(rand.Float64() * 0.0000000000001)
 
 				xShift := player2Knob*max_coord_x - (max_coord_x / 2)
 				yShift := hueKnob*max_coord_z - (max_coord_z / 2)
-
-				// define a 3d rotation
-				y = (eyelidKnob * y) + ((1 - eyelidKnob) * z)
-				x = (eyelidKnob * x) + ((1 - eyelidKnob) * z)
 
 				speed1 := speedKnob*SPEED_BASE*2 + noii
 				speed2 := speedKnob*SPEED_BASE*4 + noii
@@ -123,11 +141,14 @@ func MakePatternArchimedes(locations []float64) ByteThread {
 				speed4 := speedKnob*SPEED_BASE*0.5 + noii
 				speed5 := speedKnob*SPEED_BASE*0.25 + noii
 
-				spiral1 := Spiral(x+xShift, y-yShift, t, 0.1*noi, speed1, 0.05, 0.9, 5)
-				spiral2 := Spiral(x+xShift, y-yShift, t, -0.1*noi, speed2, 0.05, 0.5, 5)
-				spiral3 := Spiral(x+xShift, y-yShift, t, -0.05*noi, speed3, 0.1, 0.3, 8)
-				spiral4 := Spiral(x+xShift, y-yShift, t, 0.5*noi, speed4, 0.5, 0.4, 5)
-				spiral5 := Spiral(x+xShift, y-yShift, t, -0.5*noi, speed5, 0.5, 0.4, 5)
+				xPS := xP + xShift
+				yPS := yP + yShift
+
+				spiral1 := Spiral(xPS, yPS, t, 0.1*noi, speed1, 0.05, 0.9, 5)
+				spiral2 := Spiral(xPS, yPS, t, -0.1*noi, speed2, 0.05, 0.5, 5)
+				spiral3 := Spiral(xPS, yPS, t, -0.05*noi, speed3, 0.1, 0.3, 8)
+				spiral4 := Spiral(xPS, yPS, t, 0.5*noi, speed4, 0.5, 0.4, 5)
+				spiral5 := Spiral(xPS, yPS, t, -0.5*noi, speed5, 0.5, 0.4, 5)
 
 				var (
 					//White = colorful.LinearRgb(1, 1, 1)
