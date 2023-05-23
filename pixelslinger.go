@@ -11,6 +11,7 @@ import (
 	"github.com/austinfromboston/pixelslinger/potty"
 	"github.com/droundy/goopt"
 	"github.com/pkg/profile"
+	"github.com/rakyll/portmidi"
 	"os"
 	"runtime"
 	"sort"
@@ -152,10 +153,14 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	midiPath := ""
 	if *MIDI_SOURCE == "socket" {
 		midiPath = "socket"
-	} else if _, err := os.Stat("/dev/midi1"); err == nil {
+	} else if _, err := os.Stat(*MIDI_SOURCE); err == nil {
+
 		// path/to/whatever exists
-		midiPath = "/dev/midi1"
+		midiPath = *MIDI_SOURCE
 	} else if os.IsNotExist(err) {
+		portmidi.Initialize()
+		fmt.Println("device count", portmidi.Info(portmidi.DefaultInputDeviceID()))
+		defer portmidi.Terminate()
 		//path/to/whatever does *not* exist
 		midiPath = "/dev/midi2"
 	}

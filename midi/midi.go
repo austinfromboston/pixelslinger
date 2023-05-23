@@ -38,9 +38,11 @@ package midi
 
 import (
 	"fmt"
+	"github.com/austinfromboston/pixelslinger/remote"
+	"github.com/rakyll/portmidi"
+	"log"
 	"os"
 	"time"
-	"github.com/austinfromboston/pixelslinger/remote"
 )
 
 //================================================================================
@@ -206,13 +208,47 @@ func MidiStreamParserThread(inCh chan byte, outCh chan *MidiMessage) {
 // "path" should be the path to the midi device, e.g. "/dev/midi1".
 // If the path can't be opened, it will keep retrying once a second forever until it succeeds.
 func GetMidiMessageStream(path string) chan *MidiMessage {
-	midiByteChan := make(chan byte, 3000)
+	//midiByteChan := make(chan byte, 3000)
 	midiMessageChan := make(chan *MidiMessage, 500)
 
-	go tenaciousFileByteStreamerThread(path, midiByteChan)
-	go MidiStreamParserThread(midiByteChan, midiMessageChan)
+	go midiEventReader(midiMessageChan)
+
+	//go tenaciousFileByteStreamerThread(path, midiByteChan)
+	//go MidiStreamParserThread(midiByteChan, midiMessageChan)
 
 	return midiMessageChan
+}
+
+func midiEventReader(outCh chan *MidiMessage) {
+
+	for {
+		in, err := portmidi.NewInputStream(0, 1024)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer in.Close()
+		ch := in.Listen()
+		for {
+			ev := <-ch
+			message := new(MidiMessage)
+			message.Kind = byte(ev.Status)
+			message.Key = byte(ev.Data1)
+			//message.Channel = byte(ev.Data1)
+			message.Value = byte(ev.Data2)
+			fmt.Println(message)
+			outCh <- message
+		}
+		//for {
+		//	events, err := in.Read(1024)
+		//	if err != nil {
+		//		log.Fatal(err)
+		//	}
+		//	for _, ev := range events {
+		//		fmt.Println(ev)
+		//	}
+		//}
+	}
+
 }
 
 // Stream the bytes from the given path, one byte at a time

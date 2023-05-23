@@ -5,10 +5,10 @@ package opc
 //   LEDs are colored in rainbow order according to the circle of fifths.
 
 import (
-	"time"
 	"github.com/austinfromboston/pixelslinger/colorutils"
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/austinfromboston/pixelslinger/midi"
+	"time"
 )
 
 func MakePatternMidiSwitcher(locations []float64) ByteThread {
@@ -17,17 +17,17 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 		// The patterns that our MIDI knob will switch between
 		PATTERN_LIST := []string{
 			"fire",
-			"sunset",
+			//"sunset",
 			"diamond",
 			"raver-plaid",
 			"shield",
 			"spatial-stripes",
-			"moire",
+			//"moire",
 			"white",
 			"aqua",
-            "archimedes",
-            "pong",
-            "77m",
+			"archimedes",
+			//"pong",
+			//"77m",
 		}
 
 		// channels for communication with subpattern
