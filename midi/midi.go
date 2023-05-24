@@ -221,10 +221,15 @@ func GetMidiMessageStream(path string) chan *MidiMessage {
 
 func midiEventReader(outCh chan *MidiMessage) {
 
+	if portmidi.Info(portmidi.DefaultInputDeviceID()) == nil {
+		return
+
+	}
 	for {
 		in, err := portmidi.NewInputStream(0, 1024)
 		if err != nil {
 			log.Fatal(err)
+			break
 		}
 		defer in.Close()
 		ch := in.Listen()
@@ -238,15 +243,6 @@ func midiEventReader(outCh chan *MidiMessage) {
 			fmt.Println(message)
 			outCh <- message
 		}
-		//for {
-		//	events, err := in.Read(1024)
-		//	if err != nil {
-		//		log.Fatal(err)
-		//	}
-		//	for _, ev := range events {
-		//		fmt.Println(ev)
-		//	}
-		//}
 	}
 
 }
