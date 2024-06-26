@@ -46,6 +46,7 @@ func init() {
 		"white":      MakePatternWhite,
 		"aqua":       MakePatternAqua,
 		"aquab":      MakePatternAquaB,
+		"aquac":      MakePatternAquaC,
 		"colorbox":   MakePatternSpatialColorBox,
 		"archimedes": MakePatternArchimedes,
 		"pong":       MakePatternPolarPong,

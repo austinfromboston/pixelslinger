@@ -26,15 +26,14 @@ func MakeEffectFader(locations []float64) ByteThread {
 
 		FADE_TO_BLACK_TIME = 8.0 / 40.0 // in seconds
 
-		RADIALDUR = 1.2
-		SWEEPDUR = 0.7
-		TIMES_PRESSABLE = 100
-		MIN_PRESS_REST = 0.12
+		RADIALDUR            = 1.2
+		SWEEPDUR             = 0.7
+		TIMES_PRESSABLE      = 100
+		MIN_PRESS_REST       = 0.12
 		MIN_PRESS_REST_SWEEP = 0.025
 	)
 
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
-
 		// get bounding box
 		n_pixels := len(locations) / 3
 		var max_coord_x, max_coord_y, max_coord_z float64
@@ -73,17 +72,17 @@ func MakeEffectFader(locations []float64) ByteThread {
 		//lastFlashTime := 0.0
 		//lastFlashPad := 0.0
 		lastRadialTime := 0.0
-        lastRadialTimes := [TIMES_PRESSABLE]float64{0.0}
-        radialsLeft := [TIMES_PRESSABLE]float64{}
+		lastRadialTimes := [TIMES_PRESSABLE]float64{0.0}
+		radialsLeft := [TIMES_PRESSABLE]float64{}
 		lastRevRadialTime := 0.0
-        lastRevRadialTimes := [TIMES_PRESSABLE]float64{0.0}
-        revRadialsLeft := [TIMES_PRESSABLE]float64{}
-        lastLeftSweepTime := 0.0
-        lastLeftSweepTimes := [TIMES_PRESSABLE]float64{0.0}
-        leftSweepsLeft := [TIMES_PRESSABLE]float64{0.0}
-        lastRightSweepTime := 0.0
-        lastRightSweepTimes := [TIMES_PRESSABLE]float64{0.0}
-        rightSweepsLeft := [TIMES_PRESSABLE]float64{0.0}
+		lastRevRadialTimes := [TIMES_PRESSABLE]float64{0.0}
+		revRadialsLeft := [TIMES_PRESSABLE]float64{}
+		lastLeftSweepTime := 0.0
+		lastLeftSweepTimes := [TIMES_PRESSABLE]float64{0.0}
+		leftSweepsLeft := [TIMES_PRESSABLE]float64{0.0}
+		lastRightSweepTime := 0.0
+		lastRightSweepTimes := [TIMES_PRESSABLE]float64{0.0}
+		rightSweepsLeft := [TIMES_PRESSABLE]float64{0.0}
 		lastTwinkleTime := 0.0
 		lastTwinklePad := 0.0
 		lastFadeToBlackPad := 0.0
@@ -99,9 +98,12 @@ func MakeEffectFader(locations []float64) ByteThread {
 			//	lastFlashTime = t
 			//}
 
-			
 			// twinkle strobe pad
-			twinklePad := float64(midiState.KeyVolumes[config.FLASH_PAD]) / 127.0
+			//twinklePad := float64(midiState.KeyVolumes[config.FLASH_PAD]) / 127.0
+			twinklePad := 0.0
+			if int(t)%10.0 < 3 {
+				twinklePad = float64(4.0-int(t)%10) * 0.002
+			}
 			if twinklePad > 0 {
 				lastTwinklePad = twinklePad
 				lastTwinkleTime = t
@@ -110,69 +112,90 @@ func MakeEffectFader(locations []float64) ByteThread {
 			// radial record ons
 			radialPad := float64(midiState.KeyVolumes[config.BLINK_ARCH_PAD]) / 127.0
 			// its on an not so soon
-            if radialPad > 0  && t - lastRadialTime > MIN_PRESS_REST {
-            	lastRadialTime = t
-            	// insert into the first non 0 location
-				for i:=0; i<TIMES_PRESSABLE; i++ {
-					if lastRadialTimes[i] == 0 { lastRadialTimes[i] = t; break }
+			if radialPad > 0 && t-lastRadialTime > MIN_PRESS_REST {
+				lastRadialTime = t
+				// insert into the first non 0 location
+				for i := 0; i < TIMES_PRESSABLE; i++ {
+					if lastRadialTimes[i] == 0 {
+						lastRadialTimes[i] = t
+						break
+					}
 				}
 			}
 
-            // radials switch off conditions
-			for i:=0; i<TIMES_PRESSABLE; i++ {
+			// radials switch off conditions
+			for i := 0; i < TIMES_PRESSABLE; i++ {
 				radialsLeft[i] = math.Pow(t-lastRadialTimes[i], 0.5-(0.5*radialPad))
-				if radialsLeft[i] > RADIALDUR {radialsLeft[i] = 0; lastRadialTimes[i]=0.0}
+				if radialsLeft[i] > RADIALDUR {
+					radialsLeft[i] = 0
+					lastRadialTimes[i] = 0.0
+				}
 			}
 			// radial record ons
 			revRadialPad := float64(midiState.KeyVolumes[config.BLINK_BACK_PAD]) / 127.0
 			// its on an not so soon
-            if revRadialPad > 0  && t - lastRevRadialTime > MIN_PRESS_REST {
-            	lastRevRadialTime = t
-            	// insert into the first non 0 location
-				for i:=0; i<TIMES_PRESSABLE; i++ {
-					if lastRevRadialTimes[i] == 0 { lastRevRadialTimes[i] = t; break }
+			if revRadialPad > 0 && t-lastRevRadialTime > MIN_PRESS_REST {
+				lastRevRadialTime = t
+				// insert into the first non 0 location
+				for i := 0; i < TIMES_PRESSABLE; i++ {
+					if lastRevRadialTimes[i] == 0 {
+						lastRevRadialTimes[i] = t
+						break
+					}
 				}
 			}
 
-            // RevRadials switch off conditions
-			for i:=0; i<TIMES_PRESSABLE; i++ {
+			// RevRadials switch off conditions
+			for i := 0; i < TIMES_PRESSABLE; i++ {
 				revRadialsLeft[i] = math.Pow(t-lastRevRadialTimes[i], 0.5-(0.5*radialPad))
-				if revRadialsLeft[i] > RADIALDUR {revRadialsLeft[i] = 0; lastRevRadialTimes[i]=0.0}
+				if revRadialsLeft[i] > RADIALDUR {
+					revRadialsLeft[i] = 0
+					lastRevRadialTimes[i] = 0.0
+				}
 			}
 
 			// sweep ons
-            leftSweepPad := float64(midiState.KeyVolumes[config.TWINKLE_PAD]) / 127.0
-            if leftSweepPad > 0  && t -lastLeftSweepTime > MIN_PRESS_REST_SWEEP {
+			leftSweepPad := float64(midiState.KeyVolumes[config.TWINKLE_PAD]) / 127.0
+			if leftSweepPad > 0 && t-lastLeftSweepTime > MIN_PRESS_REST_SWEEP {
 				lastLeftSweepTime = t
-            	for i:=0; i<TIMES_PRESSABLE; i++ {
-					if lastLeftSweepTimes[i] == 0 { lastLeftSweepTimes[i] = t; break }
+				for i := 0; i < TIMES_PRESSABLE; i++ {
+					if lastLeftSweepTimes[i] == 0 {
+						lastLeftSweepTimes[i] = t
+						break
+					}
 				}
-                        }
+			}
 
 			// sweeps switch off conditions
-			for i:=0; i<TIMES_PRESSABLE; i++ {
+			for i := 0; i < TIMES_PRESSABLE; i++ {
 				leftSweepsLeft[i] = math.Pow(t-lastLeftSweepTimes[i], 1)
 				if leftSweepsLeft[i] > SWEEPDUR {
-					leftSweepsLeft[i] = 0; lastLeftSweepTimes[i]=0.0}
+					leftSweepsLeft[i] = 0
+					lastLeftSweepTimes[i] = 0.0
+				}
 			}
 
 			// sweep ons
-            rightSweepPad := float64(midiState.KeyVolumes[config.RIPPLE_PAD]) / 127.0
-            if rightSweepPad > 0  && t -lastRightSweepTime > MIN_PRESS_REST_SWEEP {
+			rightSweepPad := float64(midiState.KeyVolumes[config.RIPPLE_PAD]) / 127.0
+			if rightSweepPad > 0 && t-lastRightSweepTime > MIN_PRESS_REST_SWEEP {
 				lastRightSweepTime = t
-            	for i:=0; i<TIMES_PRESSABLE; i++ {
-					if lastRightSweepTimes[i] == 0 { lastRightSweepTimes[i] = t; break }
+				for i := 0; i < TIMES_PRESSABLE; i++ {
+					if lastRightSweepTimes[i] == 0 {
+						lastRightSweepTimes[i] = t
+						break
+					}
 				}
-                        }
-
-			// sweeps switch off conditions
-			for i:=0; i<TIMES_PRESSABLE; i++ {
-				rightSweepsLeft[i] = math.Pow(t-lastRightSweepTimes[i], 1)
-				if rightSweepsLeft[i] > SWEEPDUR {
-					rightSweepsLeft[i] = 0; lastRightSweepTimes[i]=0.0}
 			}
 
-            
+			// sweeps switch off conditions
+			for i := 0; i < TIMES_PRESSABLE; i++ {
+				rightSweepsLeft[i] = math.Pow(t-lastRightSweepTimes[i], 1)
+				if rightSweepsLeft[i] > SWEEPDUR {
+					rightSweepsLeft[i] = 0
+					lastRightSweepTimes[i] = 0.0
+				}
+			}
+
 			// gain knob
 			gainKnob := float64(midiState.ControllerValues[config.GAIN_KNOB]) / 127.0
 			gain0 := colorutils.Clamp(colorutils.Remap(gainKnob, 0.75, 0.95, 0, 1), 0, 1)
@@ -209,11 +232,11 @@ func MakeEffectFader(locations []float64) ByteThread {
 
 				interaction_color := 0.0
 
-                x := locations[ii*3+0]
+				x := locations[ii*3+0]
 				y := locations[ii*3+1]
-                z := locations[ii*3+2]
+				z := locations[ii*3+2]
 
-                _ = y
+				_ = y
 				// zp ranges from 0 to 1 in the bounding box
 				zp := colorutils.Remap(z, min_coord_z, max_coord_z, 0, 1)
 
@@ -244,11 +267,10 @@ func MakeEffectFader(locations []float64) ByteThread {
 				//_ = lastFlashTime
 				//if flashAmt > 0 {interaction_color += flashAmt}
 
-
 				// twinkle strobe
 				twinkleAmt := colorutils.Clamp(colorutils.Remap(t-lastTwinkleTime, 0, TWINKLE_DURATION, 1, 0), 0, 1)
 				if twinkleAmt > 0 {
-					thisTwinkle := rand.Float64()
+					thisTwinkle := rand.Float64() * 10
 					if thisTwinkle < lastTwinklePad*MAX_TWINKLE_DENSITY {
 						thisTwinkle = twinkleAmt
 					} else {
@@ -261,97 +283,103 @@ func MakeEffectFader(locations []float64) ByteThread {
 
 				// radial regions
 
-					for i:=0; i<TIMES_PRESSABLE; i++ {
+				for i := 0; i < TIMES_PRESSABLE; i++ {
 					radialLeft := radialsLeft[i]
 					if radialLeft > 0 {
 						rad_const := max_coord_x * radialLeft
 						rad := math.Sqrt(x*x + z*z)
-						radial_amount := 1 - math.Pow(math.Abs(rad_const - rad),0.8)
-						if radial_amount>0.9{
+						radial_amount := 1 - math.Pow(math.Abs(rad_const-rad), 0.8)
+						if radial_amount > 0.9 {
 							interaction_color += radial_amount
 						}
 					}
 				}
 
 				// revradial regions
-				for i:=0; i<TIMES_PRESSABLE; i++ {
+				for i := 0; i < TIMES_PRESSABLE; i++ {
 					radialLeft := revRadialsLeft[i]
 					if radialLeft > 0 {
-						rad_const := max_coord_x * (1-radialLeft)
+						rad_const := max_coord_x * (1 - radialLeft)
 						rad := math.Sqrt(x*x + z*z)
-						radial_amount := 1 - math.Pow(math.Abs(rad_const - rad),0.8)
-						if radial_amount>0.9{
+						radial_amount := 1 - math.Pow(math.Abs(rad_const-rad), 0.8)
+						if radial_amount > 0.9 {
 							interaction_color += radial_amount
 							//fmt.Println("adding radial amount ", radial_amount)
 						}
 					}
 				}
 
-
-				numLeftSweepsActive :=0
-				for i:=0; i<TIMES_PRESSABLE; i++ {
-					sweepLeft := leftSweepsLeft[i]
-					if sweepLeft >0{ numLeftSweepsActive +=1 }
-				}
-
-				sweep_on_here_left:=false
-				for i:=0; i<TIMES_PRESSABLE; i++ {
+				numLeftSweepsActive := 0
+				for i := 0; i < TIMES_PRESSABLE; i++ {
 					sweepLeft := leftSweepsLeft[i]
 					if sweepLeft > 0 {
-						theta_const :=  math.Pi/20.0 * float64(numLeftSweepsActive)
+						numLeftSweepsActive += 1
+					}
+				}
+
+				sweep_on_here_left := false
+				for i := 0; i < TIMES_PRESSABLE; i++ {
+					sweepLeft := leftSweepsLeft[i]
+					if sweepLeft > 0 {
+						theta_const := math.Pi / 20.0 * float64(numLeftSweepsActive)
 						theta := math.Atan2(z, x)
 						//sweep_amount := theta_const - theta
 						//if sweep_amount>.9 && sweep_amount<1 {
 						//	interaction_color += sweep_amount
 						//}
-						if theta < theta_const{
+						if theta < theta_const {
 							sweep_on_here_left = true
 						}
 					}
 				}
-				if sweep_on_here_left{interaction_color+=0.6}
-
-				numRightSweepsActive :=0
-				for i:=0; i<TIMES_PRESSABLE; i++ {
-					sweepRight := rightSweepsLeft[i]
-					if sweepRight >0{ numRightSweepsActive +=1 }
+				if sweep_on_here_left {
+					interaction_color += 0.6
 				}
 
-				sweep_on_here_right:=false
-				for i:=0; i<TIMES_PRESSABLE; i++ {
+				numRightSweepsActive := 0
+				for i := 0; i < TIMES_PRESSABLE; i++ {
+					sweepRight := rightSweepsLeft[i]
+					if sweepRight > 0 {
+						numRightSweepsActive += 1
+					}
+				}
+
+				sweep_on_here_right := false
+				for i := 0; i < TIMES_PRESSABLE; i++ {
 					sweepRight := rightSweepsLeft[i]
 					if sweepRight > 0 {
 
 						//rightScoreAngleMax := math.Pi - (math.Pi/20.0 * float64(state.score[0]))
 						//state.rightScoreAngle = math.Pi - ((math.Pi - rightScoreAngleMax) * displayDuration)
 
-						theta_const :=  math.Pi - (math.Pi/20.0 * float64(numRightSweepsActive))
+						theta_const := math.Pi - (math.Pi / 20.0 * float64(numRightSweepsActive))
 
 						theta := math.Atan2(z, x)
 						//sweep_amount := theta_const - theta
 						//if sweep_amount>.9 && sweep_amount<1 {
 						//	interaction_color += sweep_amount
 						//}
-						if theta > theta_const{
+						if theta > theta_const {
 							sweep_on_here_right = true
 						}
 					}
 				}
-				if sweep_on_here_right{interaction_color+=0.6}
+				if sweep_on_here_right {
+					interaction_color += 0.6
+				}
 
 				HUE := float64(midiState.ControllerValues[config.HUE_KNOB]) / 127.0
 				interaction_r, interaction_g, interaction_b := colorutils.HslToRgb(HUE, 1.0, 0.75)
-				if interaction_color<1{
+				if interaction_color < 1 {
 					r += interaction_r * interaction_color
 					g += interaction_g * interaction_color
 					b += interaction_b * interaction_color
 				}
-				if interaction_color>1{
+				if interaction_color > 1 {
 					r -= interaction_r * interaction_color
 					g -= interaction_g * interaction_color
 					b -= interaction_b * interaction_color
 				}
-
 
 				// desaturation
 				if desatKnob != 0 {
