@@ -37,7 +37,7 @@ func init() {
 var LAYOUT_FN = goopt.String([]string{"-l", "--layout"}, "...", "layout file (required)")
 var SOURCE = goopt.String([]string{"-s", "--source"}, "spatial-stripes", "pixel source (either a pattern name or "+LOCALHOST+"[:port])")
 var DEST = goopt.String([]string{"-d", "--dest"}, "localhost", "destination (one of "+PRINT_MAGIC_WORD+", "+SPI_MAGIC_WORD+", "+DEVNULL_MAGIC_WORD+", "+ARTNET_MAGIC_WORD+"or hostname[:port])")
-var DEST2 = goopt.String([]string{"-d2", "--dest2"}, "", "secondary destination ("+ARTNET_MAGIC_WORD+")")
+var DEST2 = goopt.String([]string{"-D", "--dest2"}, "", "secondary destination ("+ARTNET_MAGIC_WORD+")")
 var FPS = goopt.Int([]string{"-f", "--fps"}, 40, "max frames per second")
 var SECONDS = goopt.Int([]string{"-n", "--seconds"}, 0, "quit after this many seconds")
 var ONCE = goopt.Flag([]string{"-o", "--once"}, []string{}, "quit after one frame", "")
