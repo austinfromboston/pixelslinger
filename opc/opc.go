@@ -282,6 +282,109 @@ func MakeSendToLPD8806Thread(spiFn string) ByteThread {
 	}
 }
 
+func MakeSendToArtnetThreadMultiple(hostname string, hostname2 string) ByteThread {
+	STRIP_LENGTH := 120
+	BYTE_SIZE := STRIP_LENGTH * 3
+	STRIP_COUNT := 18
+	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
+		fmt.Println("[artnet.SendToArtnetThread] starting up")
+
+		var conn net.Conn
+		var conn2 net.Conn
+		var err error
+		dst := fmt.Sprintf("%s:%d", hostname, packet.ArtNetPort)
+		dst2 := fmt.Sprintf("%s:%d", hostname2, packet.ArtNetPort)
+		node, _ := net.ResolveUDPAddr("udp", dst)
+		node2, _ := net.ResolveUDPAddr("udp", dst2)
+		//src := fmt.Sprintf("%s:%d", "127.0.0.1", 10001)
+		src := fmt.Sprintf("%s:%d", nil, 10001)
+		localAddr, _ := net.ResolveUDPAddr("udp", src)
+
+		// set channels 1 and 4 to FL, 2, 3 and 5 to FD
+		// on my colorBeam this sets output 1 to fullbright red with zero strobing
+
+		//log := artnet.NewDefaultLogger()
+		//c := artnet.NewController("controller-1", ip, log)
+		// make a new net.Ip object for localhost
+		//nc := artnet.NodeConfig{Name: "local", IP: net.IP{127, 0, 0, 1}}
+		//c.updateNode(nc)
+		//c.Start()
+
+		gamma_lookup := make([]byte, 256)
+		for ii := 0; ii < 256; ii++ {
+			floatVal := math.Pow(float64(ii)/255, GAMMA)
+			if floatVal >= 1 {
+				gamma_lookup[ii] = 255
+			} else {
+				gamma_lookup[ii] = byte(floatVal * 256)
+			}
+		}
+
+		for bytes := range bytesIn {
+			if conn == nil {
+				conn, err = net.DialUDP("udp", localAddr, node)
+				//conn, err := net.ListenUDP("udp", node)
+				if err != nil {
+					fmt.Printf("error opening udp: %s\n", err)
+					return
+				}
+			}
+			if conn2 == nil {
+				conn2, err = net.DialUDP("udp", localAddr, node2)
+				if err != nil {
+					fmt.Printf("error opening udp: %s\n", err)
+					return
+				}
+			}
+			// if that didn't work, wait a second and restart the loop
+			if conn == nil {
+				bytesOut <- bytes
+				fmt.Println("[opc.SendToArtnetThread] waiting to retry")
+				time.Sleep(WAIT_TO_RETRY * time.Millisecond)
+				continue
+			}
+			// ok, at this point the connection is good
+
+			// gamma correct
+			// HACK: change this later when we decide if OPC should have
+			// pixels in perceptual or linear space
+			for ii := range bytes {
+				bytes[ii] = gamma_lookup[bytes[ii+0]]
+			}
+
+			for stripIdx := 0; stripIdx < STRIP_COUNT; stripIdx++ {
+				//_, err = conn.Write(bytes)
+				bytesToSend := [512]byte{}
+				stripStart := stripIdx * BYTE_SIZE
+				for j := 0; j < BYTE_SIZE; j++ {
+					bytesToSend[j] = bytes[stripStart+j]
+				}
+				p := &packet.ArtDMXPacket{
+					Sequence: 1,
+					SubUni:   uint8(stripIdx),
+					Net:      0,
+					Data:     bytesToSend,
+				}
+
+				b, err := p.MarshalBinary()
+				// send actual pixel values
+				_, err = conn.Write(b)
+				_, err = conn2.Write(b)
+				if err != nil {
+					fmt.Printf("error writing packet: %s\n", err)
+					return
+				}
+				//fmt.Printf("packet sent, wrote %d bytes\n", n)
+
+			}
+			//fmt.Printf("block sent, total size %d\n", len(bytes))
+
+			bytesOut <- bytes
+
+		}
+	}
+}
+
 func MakeSendToArtnetThread(hostname string) ByteThread {
 	STRIP_LENGTH := 120
 	BYTE_SIZE := STRIP_LENGTH * 3
