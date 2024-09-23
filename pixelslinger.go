@@ -8,6 +8,7 @@ import (
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/austinfromboston/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/opc"
+	oscpixels "github.com/austinfromboston/pixelslinger/osc"
 	"github.com/austinfromboston/pixelslinger/potty"
 	"github.com/droundy/goopt"
 	"github.com/pkg/profile"
@@ -171,7 +172,10 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	}
 	fmt.Println("midiPath is", midiPath)
 	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
-	midiState := midi.MidiState{}
+	oscMessageChan := oscpixels.GetOSCMessageStream("localhost:8765")
+
+	rhythmState := oscpixels.RhythmState{}
+	midiState := midi.MidiState{Rhythm: rhythmState}
 
 	// set initial values for controller knobs
 	//  (because the midi hardware only sends us values when the knobs move)
@@ -210,9 +214,10 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 		// print framerate occasionally
 		frameStartTime = float64(time.Now().UnixNano()) / 1.0e9
 		framesSinceLastPrint += 1
-		if frameStartTime > lastPrintTime+1 {
+		secondsSinceLastPrint := 5
+		if frameStartTime > (lastPrintTime + float64(secondsSinceLastPrint)) {
 			lastPrintTime = frameStartTime
-			fmt.Printf("[%s] [mainLoop] %f ms/frame (%d fps)\n", time.Now().Format("03:04:05j"), 1000.0/float64(framesSinceLastPrint), framesSinceLastPrint)
+			fmt.Printf("[%s] [mainLoop] %f ms/frame (%d fps)\n", time.Now().Format("03:04:05"), (1000.0*float64(secondsSinceLastPrint))/float64(framesSinceLastPrint), framesSinceLastPrint/secondsSinceLastPrint)
 			framesSinceLastPrint = 0
 			// toggle LED
 			//beaglebone.SetOnboardLED(ONBOARD_LED_HEARTBEAT, flipper)
@@ -226,6 +231,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 
 		// get midi
 		midiState.UpdateStateFromChannel(midiMessageChan)
+		midiState.Rhythm.UpdateStateFromChannel(oscMessageChan)
 		//if len(midiState.RecentMidiMessages) > 0 {
 		//	beaglebone.SetOnboardLED(ONBOARD_LED_MIDI, 1)
 		//} else {

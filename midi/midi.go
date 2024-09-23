@@ -38,6 +38,7 @@ package midi
 
 import (
 	"fmt"
+	oscpixels "github.com/austinfromboston/pixelslinger/osc"
 	"github.com/austinfromboston/pixelslinger/remote"
 	"github.com/rakyll/portmidi"
 	"log"
@@ -285,9 +286,10 @@ func tenaciousFileByteStreamerThread(path string, outCh chan byte) {
 
 // Keeps track of the current state of the keys and controllers.
 type MidiState struct {
-	KeyVolumes         [128]byte      // values from 0 to 127
-	ControllerValues   [128]byte      // values from 0 to 127
-	RecentMidiMessages []*MidiMessage // midi messages from the most recent call to UpdateStateXXX()
+	KeyVolumes         [128]byte             // values from 0 to 127
+	ControllerValues   [128]byte             // values from 0 to 127
+	RecentMidiMessages []*MidiMessage        // midi messages from the most recent call to UpdateStateXXX()
+	Rhythm             oscpixels.RhythmState // current beat
 }
 
 // Pull all the available MidiMessages out of the channel without blocking.  Requires a channel
@@ -325,5 +327,20 @@ func (midiState *MidiState) UpdateStateFromSlice(midiMessages []*MidiMessage) {
 		case CONTROLLER:
 			midiState.ControllerValues[m.Key] = m.Value
 		}
+	}
+}
+
+const EFFECT_DURATION = 200
+
+func (midiState *MidiState) UpdateStateFromRhythm() {
+	currentTime := time.Now().UnixMilli()
+	beat := midiState.Rhythm.LastBeat
+	beatStart := midiState.Rhythm.BeatStartTime
+	//println("beat", beat)
+	effectMoment := currentTime - beatStart
+	if (beat == 3 || beat == 1) && currentTime-beatStart < EFFECT_DURATION {
+		midiState.KeyVolumes[LPD8_PAD1] = byte((30 + effectMoment) % 127)
+	} else {
+		midiState.KeyVolumes[LPD8_PAD1] = 0
 	}
 }
