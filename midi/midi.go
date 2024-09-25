@@ -356,6 +356,10 @@ func (midiState *MidiState) UpdateStateFromRhythm() {
 	beat := midiState.Rhythm.LastBeat
 	beatStart := midiState.Rhythm.BeatStartTime
 	effectMoment := currentTime - beatStart
+	if beat == 0 {
+		// beat link not active
+		return
+	}
 	if (beat == 4 || beat == 2) && effectMoment < EFFECT_DURATION {
 		if midiState.Rhythm.FlashEffectActive {
 			flashEffect(midiState, effectMoment, 55)
