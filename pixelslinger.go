@@ -174,8 +174,8 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
 	oscMessageChan := oscpixels.GetOSCMessageStream("localhost:8765")
 
-	rhythmState := oscpixels.RhythmState{}
-	midiState := midi.MidiState{Rhythm: rhythmState}
+	rhythmState := oscpixels.RhythmState{Scrambles: make(map[string]oscpixels.Scramble)}
+	midiState := midi.MidiState{Rhythm: rhythmState, LastMidiMessageTime: 0}
 
 	// set initial values for controller knobs
 	//  (because the midi hardware only sends us values when the knobs move)

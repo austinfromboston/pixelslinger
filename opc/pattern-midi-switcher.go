@@ -8,6 +8,7 @@ import (
 	"github.com/austinfromboston/pixelslinger/colorutils"
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/austinfromboston/pixelslinger/midi"
+	"github.com/austinfromboston/pixelslinger/patterns"
 	"time"
 )
 
@@ -15,20 +16,7 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 	return func(bytesIn chan []byte, bytesOut chan []byte, midiState *midi.MidiState) {
 
 		// The patterns that our MIDI knob will switch between
-		PATTERN_LIST := []string{
-			"fire",
-			//"sunset",
-			"diamond",
-			"raver-plaid",
-			"shield",
-			"spatial-stripes",
-			//"moire",
-			"white",
-			"aqua",
-			"archimedes",
-			//"pong",
-			//"77m",
-		}
+		PATTERN_LIST := patterns.PATTERN_LIST
 
 		// channels for communication with subpattern
 		chanToPattern := make(chan []byte, 0)
@@ -52,6 +40,10 @@ func MakePatternMidiSwitcher(locations []float64) ByteThread {
 			// assume switchKnob is between 0 and 1
 			ii := int(switchKnob * float64(len(PATTERN_LIST)) * 0.99999)
 			patternName = PATTERN_LIST[ii]
+			// auto controls from osc listener
+			if midiState.PatternName != "" && !midiState.RecentlyUpdatedFromPanel() {
+				patternName = midiState.PatternName
+			}
 
 			// Subpattern has changed.  Close old one and start new one.
 			// This is not ideal because it has to re-init each pattern every

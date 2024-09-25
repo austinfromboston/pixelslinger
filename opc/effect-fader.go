@@ -91,7 +91,9 @@ func MakeEffectFader(locations []float64) ByteThread {
 		for bytes := range bytesIn {
 			n_pixels := len(bytes) / 3
 			t := float64(time.Now().UnixNano())/1.0e9 - 9.4e8
-			midiState.UpdateStateFromRhythm()
+			if !midiState.RecentlyUpdatedFromPanel() {
+				midiState.UpdateStateFromRhythm()
+			}
 
 			// flash pad
 			//flashPad := float64(midiState.KeyVolumes[config.RIPPLE_PAD]) / 127.0

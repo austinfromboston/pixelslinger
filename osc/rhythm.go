@@ -1,7 +1,10 @@
 package oscpixels
 
 import (
+	"github.com/austinfromboston/pixelslinger/patterns"
 	"github.com/hypebeast/go-osc/osc"
+	"math/rand"
+	"sort"
 	"time"
 )
 
@@ -14,6 +17,17 @@ type RhythmState struct {
 		InitialBeat int64
 		LastOneBeat int64
 	}
+	CurrentTrackTitle string
+	NextTrackTitle    string
+	Scrambles         map[string]Scramble
+	CurrentSpeed      int
+}
+
+type Scramble struct {
+	Pattern    string
+	Gain       int
+	Hue        int
+	Saturation int
 }
 
 const BeatsPerMeasure = 4
@@ -29,6 +43,7 @@ func (rhythmState *RhythmState) UpdateStateFromMessage(msg *osc.Message) {
 		currentBeat := msg.Arguments[0].(int32)
 		rhythmState.LastBeat = int(currentBeat)
 		rhythmState.BeatStartTime = currentTime
+		//println("Beat:", rhythmState.BeatStartTime, " - ", currentBeat)
 		if currentBeat == 1 {
 			rhythmState.Timing.LastOneBeat = currentTime
 		} else {
@@ -36,6 +51,19 @@ func (rhythmState *RhythmState) UpdateStateFromMessage(msg *osc.Message) {
 		}
 	case "/lx/tempo/setBPM":
 		rhythmState.BPM = float32(msg.Arguments[0].(float64))
+		rhythmState.CurrentSpeed = getSpeed(int(rhythmState.BPM))
+		//println("new speed", rhythmState.CurrentSpeed)
+	case "/lx/track/fadeout/track_title":
+		rhythmState.CurrentTrackTitle = rhythmState.NextTrackTitle
+		// foo
+	case "/lx/track/fadein/track_title":
+		rhythmState.NextTrackTitle = msg.Arguments[0].(string)
+		if _, ok := rhythmState.Scrambles[rhythmState.NextTrackTitle]; ok {
+			// do nothing
+		} else {
+			rhythmState.Scrambles[rhythmState.NextTrackTitle] = newScramble()
+		}
+
 	}
 }
 
@@ -43,6 +71,27 @@ type BeatInfo struct {
 	Beat          int
 	BeatStartTime int64
 	BeatEndTime   int64
+}
+
+func newScramble() Scramble {
+	rand.Seed(time.Now().UnixNano()) // seed or it will be set to 1
+	patternIndex := rand.Intn(len(patterns.PATTERN_LIST))
+	hue := rand.Intn(127)
+	gain := 64 + rand.Intn(64)
+	saturation := rand.Intn(60)
+	return Scramble{
+		patterns.PATTERN_LIST[patternIndex],
+		gain,
+		hue,
+		saturation,
+	}
+}
+
+var bpmRanges = []int{-1, 60, 80, 100, 120, 140, 190, 355}
+var speeds = []int{30, 40, 65, 80, 95, 110, 127}
+
+func getSpeed(n int) int {
+	return speeds[sort.SearchInts(bpmRanges, n)]
 }
 
 func (rhythmState *RhythmState) CurrentBeat() BeatInfo {

@@ -14,6 +14,7 @@ require github.com/rakyll/portmidi v0.0.0-20201020180702-d436ceaa537a
 
 require (
 	github.com/felixge/fgprof v0.9.3 // indirect
+	github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
 	github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect

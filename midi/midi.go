@@ -40,6 +40,7 @@ import (
 	"fmt"
 	oscpixels "github.com/austinfromboston/pixelslinger/osc"
 	"github.com/austinfromboston/pixelslinger/remote"
+	"github.com/fogleman/ease"
 	"github.com/rakyll/portmidi"
 	"log"
 	"os"
@@ -92,6 +93,21 @@ const (
 	CLOCK byte = 8
 	START byte = 10
 	STOP  byte = 12
+)
+
+const RESET_TIMEOUT_FOR_AUTO_EFFECTS = 300
+
+// midi knobs
+const (
+	GAIN_KNOB    = LPD8_KNOB1 // effect
+	EYELID_KNOB  = LPD8_KNOB2 // effect
+	SPEED_KNOB   = LPD8_KNOB3 //   pattern (diamond, fire, raver-plaid, shield, sunset)
+	SWITCH_KNOB  = LPD8_KNOB4 //     midi-switcher
+	MORPH_KNOB   = LPD8_KNOB5 //   pattern (diamond, white)
+	HUE_KNOB     = LPD8_KNOB6 //   pattern (diamond, fire, white)
+	DESAT_KNOB   = LPD8_KNOB7 // effect
+	PlAYER2_KNOB = LPD8_KNOB8 // effect
+
 )
 
 //================================================================================
@@ -286,10 +302,12 @@ func tenaciousFileByteStreamerThread(path string, outCh chan byte) {
 
 // Keeps track of the current state of the keys and controllers.
 type MidiState struct {
-	KeyVolumes         [128]byte             // values from 0 to 127
-	ControllerValues   [128]byte             // values from 0 to 127
-	RecentMidiMessages []*MidiMessage        // midi messages from the most recent call to UpdateStateXXX()
-	Rhythm             oscpixels.RhythmState // current beat
+	KeyVolumes          [128]byte             // values from 0 to 127
+	ControllerValues    [128]byte             // values from 0 to 127
+	RecentMidiMessages  []*MidiMessage        // midi messages from the most recent call to UpdateStateXXX()
+	Rhythm              oscpixels.RhythmState // current beat
+	LastMidiMessageTime int64
+	PatternName         string
 }
 
 // Pull all the available MidiMessages out of the channel without blocking.  Requires a channel
@@ -319,6 +337,7 @@ func (midiState *MidiState) UpdateStateFromChannel(midiMessageChan chan *MidiMes
 func (midiState *MidiState) UpdateStateFromSlice(midiMessages []*MidiMessage) {
 	midiState.RecentMidiMessages = midiMessages
 	for _, m := range midiState.RecentMidiMessages {
+		midiState.LastMidiMessageTime = time.Now().Unix()
 		switch m.Kind {
 		case NOTE_OFF:
 			midiState.KeyVolumes[m.Key] = 0
@@ -336,11 +355,29 @@ func (midiState *MidiState) UpdateStateFromRhythm() {
 	currentTime := time.Now().UnixMilli()
 	beat := midiState.Rhythm.LastBeat
 	beatStart := midiState.Rhythm.BeatStartTime
-	//println("beat", beat)
 	effectMoment := currentTime - beatStart
-	if (beat == 3 || beat == 1) && currentTime-beatStart < EFFECT_DURATION {
-		midiState.KeyVolumes[LPD8_PAD1] = byte((30 + effectMoment) % 127)
+	if (beat == 4 || beat == 2) && currentTime-beatStart < EFFECT_DURATION {
+		input := float64((EFFECT_DURATION)-float64(effectMoment)) / float64(EFFECT_DURATION)
+		t := ease.OutCubic(input)
+		midiState.KeyVolumes[LPD8_PAD1] = byte(t * float64(127))
 	} else {
 		midiState.KeyVolumes[LPD8_PAD1] = 0
 	}
+	midiState.ControllerValues[SPEED_KNOB] = byte(midiState.Rhythm.CurrentSpeed)
+
+	if scramble, ok := midiState.Rhythm.Scrambles[midiState.Rhythm.CurrentTrackTitle]; ok {
+		midiState.PatternName = scramble.Pattern
+		midiState.ControllerValues[GAIN_KNOB] = byte(scramble.Gain)
+		midiState.ControllerValues[HUE_KNOB] = byte(scramble.Hue)
+		midiState.ControllerValues[DESAT_KNOB] = byte(scramble.Saturation)
+	}
+}
+
+//func onBeatEffect(midiState *MidiState) {
+//	if (midiState.Rhythm.BeatEffect[midiState.Rhythm.] == 0) {}
+//
+//}
+
+func (midiState *MidiState) RecentlyUpdatedFromPanel() bool {
+	return (time.Now().Unix() - midiState.LastMidiMessageTime) < RESET_TIMEOUT_FOR_AUTO_EFFECTS
 }
