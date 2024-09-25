@@ -17,10 +17,15 @@ type RhythmState struct {
 		InitialBeat int64
 		LastOneBeat int64
 	}
-	CurrentTrackTitle string
-	NextTrackTitle    string
-	Scrambles         map[string]Scramble
-	CurrentSpeed      int
+	CurrentTrackTitle    string
+	NextTrackTitle       string
+	Scrambles            map[string]Scramble
+	CurrentSpeed         int
+	FlashEffectActive    bool
+	GainEffectActive     bool
+	ScrambleEffectActive bool
+	AltScramble          Scramble
+	DefaultScramble      Scramble
 }
 
 type Scramble struct {
@@ -34,7 +39,10 @@ const BeatsPerMeasure = 4
 
 func (rhythmState *RhythmState) UpdateStateFromMessage(msg *osc.Message) {
 	currentTime := time.Now().UnixMilli()
-	//println("BPM", rhythmState.BPM, "lastBeat", rhythmState.LastBeat, "current", currentTime)
+	if rhythmState.DefaultScramble.Pattern == "" {
+		rhythmState.DefaultScramble = newScramble()
+		rhythmState.AltScramble = newScramble()
+	}
 	switch msg.Address {
 	case "/lx/tempo/beat":
 		if rhythmState.Timing.InitialBeat == 0 {
@@ -43,11 +51,26 @@ func (rhythmState *RhythmState) UpdateStateFromMessage(msg *osc.Message) {
 		currentBeat := msg.Arguments[0].(int32)
 		rhythmState.LastBeat = int(currentBeat)
 		rhythmState.BeatStartTime = currentTime
-		//println("Beat:", rhythmState.BeatStartTime, " - ", currentBeat)
 		if currentBeat == 1 {
 			rhythmState.Timing.LastOneBeat = currentTime
 		} else {
 			rhythmState.Timing.LastOneBeat = int64(float32(currentTime) - (float32(currentBeat) * (60000.0 / rhythmState.BPM)))
+		}
+	case "/lx/tempo/beatNumber":
+		beatNumber := msg.Arguments[0].(int32)
+		if beatNumber%(BeatsPerMeasure*16) == 0 {
+			effectSelector := rand.Intn(100)
+			rhythmState.AltScramble = newScramble()
+			rhythmState.GainEffectActive = false
+			rhythmState.ScrambleEffectActive = false
+			rhythmState.FlashEffectActive = false
+			if effectSelector > 40 && effectSelector < 65 {
+				rhythmState.FlashEffectActive = true
+			} else if effectSelector < 85 {
+				rhythmState.ScrambleEffectActive = true
+			} else {
+				rhythmState.GainEffectActive = true
+			}
 		}
 	case "/lx/tempo/setBPM":
 		rhythmState.BPM = float32(msg.Arguments[0].(float64))

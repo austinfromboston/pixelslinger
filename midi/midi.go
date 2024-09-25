@@ -356,27 +356,53 @@ func (midiState *MidiState) UpdateStateFromRhythm() {
 	beat := midiState.Rhythm.LastBeat
 	beatStart := midiState.Rhythm.BeatStartTime
 	effectMoment := currentTime - beatStart
-	if (beat == 4 || beat == 2) && currentTime-beatStart < EFFECT_DURATION {
-		input := float64((EFFECT_DURATION)-float64(effectMoment)) / float64(EFFECT_DURATION)
-		t := ease.OutCubic(input)
-		midiState.KeyVolumes[LPD8_PAD1] = byte(t * float64(127))
+	if (beat == 4 || beat == 2) && effectMoment < EFFECT_DURATION {
+		if midiState.Rhythm.FlashEffectActive {
+			flashEffect(midiState, effectMoment, 55)
+		} else if midiState.Rhythm.ScrambleEffectActive {
+			scrambleEffect(midiState, midiState.Rhythm.AltScramble)
+		} else if midiState.Rhythm.GainEffectActive {
+			gainEffect(midiState, effectMoment, 100)
+		}
 	} else {
-		midiState.KeyVolumes[LPD8_PAD1] = 0
+		resetEffects(midiState)
 	}
 	midiState.ControllerValues[SPEED_KNOB] = byte(midiState.Rhythm.CurrentSpeed)
+}
 
-	if scramble, ok := midiState.Rhythm.Scrambles[midiState.Rhythm.CurrentTrackTitle]; ok {
-		midiState.PatternName = scramble.Pattern
-		midiState.ControllerValues[GAIN_KNOB] = byte(scramble.Gain)
+func gainEffect(midiState *MidiState, effectMoment int64, intensity int) {
+	//input := float64((EFFECT_DURATION)-float64(effectMoment)) / float64(EFFECT_DURATION)
+	input := float64(effectMoment) / float64(EFFECT_DURATION)
+	t := ease.InQuart(input)
+	scramble := midiState.Rhythm.AltScramble
+	if scramble.Pattern != "" {
+		midiState.PatternName = "white"
 		midiState.ControllerValues[HUE_KNOB] = byte(scramble.Hue)
-		midiState.ControllerValues[DESAT_KNOB] = byte(scramble.Saturation)
+		midiState.ControllerValues[GAIN_KNOB] = byte(t * float64(intensity))
 	}
 }
 
-//func onBeatEffect(midiState *MidiState) {
-//	if (midiState.Rhythm.BeatEffect[midiState.Rhythm.] == 0) {}
-//
-//}
+func scrambleEffect(midiState *MidiState, scramble oscpixels.Scramble) {
+	midiState.PatternName = scramble.Pattern
+	midiState.ControllerValues[GAIN_KNOB] = byte(scramble.Gain)
+	midiState.ControllerValues[HUE_KNOB] = byte(scramble.Hue)
+	midiState.ControllerValues[DESAT_KNOB] = byte(scramble.Saturation)
+}
+
+func resetEffects(midiState *MidiState) {
+	midiState.KeyVolumes[LPD8_PAD1] = 0
+	if scramble, ok := midiState.Rhythm.Scrambles[midiState.Rhythm.CurrentTrackTitle]; ok {
+		scrambleEffect(midiState, scramble)
+	} else {
+		scrambleEffect(midiState, midiState.Rhythm.DefaultScramble)
+	}
+}
+
+func flashEffect(midiState *MidiState, effectMoment int64, intensity int) {
+	input := float64((EFFECT_DURATION)-float64(effectMoment)) / float64(EFFECT_DURATION)
+	t := ease.OutCubic(input)
+	midiState.KeyVolumes[LPD8_PAD1] = byte(t * float64(intensity))
+}
 
 func (midiState *MidiState) RecentlyUpdatedFromPanel() bool {
 	return (time.Now().Unix() - midiState.LastMidiMessageTime) < RESET_TIMEOUT_FOR_AUTO_EFFECTS
