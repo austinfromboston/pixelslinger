@@ -95,7 +95,7 @@ const (
 	STOP  byte = 12
 )
 
-const RESET_TIMEOUT_FOR_AUTO_EFFECTS = 300
+const RESET_TIMEOUT_FOR_AUTO_EFFECTS = 30
 
 // midi knobs
 const (
@@ -349,24 +349,33 @@ func (midiState *MidiState) UpdateStateFromSlice(midiMessages []*MidiMessage) {
 	}
 }
 
-const EFFECT_DURATION = 200
+const EFFECT_DURATION = 120
 
 func (midiState *MidiState) UpdateStateFromRhythm() {
 	currentTime := time.Now().UnixMilli()
 	beat := midiState.Rhythm.LastBeat
 	beatStart := midiState.Rhythm.BeatStartTime
 	effectMoment := currentTime - beatStart
+    beatLength := int64(200)
+	if (midiState.Rhythm.BPM != 0) {
+    	beatLength = int64((1.0 / (float64(midiState.Rhythm.BPM)/ 60.0)) * 1000)
+	}
+//     println("who what now", effectMoment, beatLength)
 	if beat == 0 {
 		// beat link not active
 		return
 	}
-	if (beat == 4 || beat == 2) && effectMoment < EFFECT_DURATION {
+	if (beat == 2 || beat == 4) && effectMoment < beatLength {
 		if midiState.Rhythm.FlashEffectActive {
-			flashEffect(midiState, effectMoment, 55)
+			flashEffect(midiState, effectMoment, 30, beatLength)
 		} else if midiState.Rhythm.ScrambleEffectActive {
 			scrambleEffect(midiState, midiState.Rhythm.AltScramble)
 		} else if midiState.Rhythm.GainEffectActive {
-			gainEffect(midiState, effectMoment, 100)
+			gainEffect(midiState, effectMoment, 80, beatLength)
+		} else if midiState.Rhythm.BurstEffectActive {
+		    burstEffect(midiState, effectMoment, 80, beatLength)
+		} else if midiState.Rhythm.RippleEffectActive {
+		    rippleEffect(midiState, effectMoment, 80, beatLength)
 		}
 	} else {
 		resetEffects(midiState)
@@ -374,15 +383,17 @@ func (midiState *MidiState) UpdateStateFromRhythm() {
 	midiState.ControllerValues[SPEED_KNOB] = byte(midiState.Rhythm.CurrentSpeed)
 }
 
-func gainEffect(midiState *MidiState, effectMoment int64, intensity int) {
+func gainEffect(midiState *MidiState, effectMoment int64, intensity int, beatLength int64) {
 	//input := float64((EFFECT_DURATION)-float64(effectMoment)) / float64(EFFECT_DURATION)
-	input := float64(effectMoment) / float64(EFFECT_DURATION)
+	input := float64(effectMoment) / float64(beatLength)
+
 	t := ease.InQuart(input)
 	scramble := midiState.Rhythm.AltScramble
 	if scramble.Pattern != "" {
-		midiState.PatternName = "white"
+// 		midiState.PatternName = "white"
 		midiState.ControllerValues[HUE_KNOB] = byte(scramble.Hue)
-		midiState.ControllerValues[GAIN_KNOB] = byte(t * float64(intensity))
+		midiState.ControllerValues[GAIN_KNOB] = byte(15 + (t * float64(intensity)))
+// 		println("gain", beatLength, effectMoment, int(input * 1000), byte(t * float64(intensity)))
 	}
 }
 
@@ -395,6 +406,9 @@ func scrambleEffect(midiState *MidiState, scramble oscpixels.Scramble) {
 
 func resetEffects(midiState *MidiState) {
 	midiState.KeyVolumes[LPD8_PAD1] = 0
+	midiState.KeyVolumes[LPD8_PAD5] = 0
+	midiState.KeyVolumes[LPD8_PAD6] = 0
+
 	if scramble, ok := midiState.Rhythm.Scrambles[midiState.Rhythm.CurrentTrackTitle]; ok {
 		scrambleEffect(midiState, scramble)
 	} else {
@@ -402,11 +416,24 @@ func resetEffects(midiState *MidiState) {
 	}
 }
 
-func flashEffect(midiState *MidiState, effectMoment int64, intensity int) {
-	input := float64((EFFECT_DURATION)-float64(effectMoment)) / float64(EFFECT_DURATION)
+func flashEffect(midiState *MidiState, effectMoment int64, intensity int, beatLength int64) {
+	input := (float64(beatLength)-float64(effectMoment)) / float64(beatLength)
 	t := ease.OutCubic(input)
 	midiState.KeyVolumes[LPD8_PAD1] = byte(t * float64(intensity))
 }
+
+func burstEffect(midiState *MidiState, effectMoment int64, intensity int, beatLength int64) {
+	input := (float64(beatLength)-float64(effectMoment)) / float64(beatLength)
+	t := ease.OutCubic(input)
+	midiState.KeyVolumes[LPD8_PAD5] = byte(t * float64(intensity))
+}
+
+func rippleEffect(midiState *MidiState, effectMoment int64, intensity int, beatLength int64) {
+	input := (float64(beatLength)-float64(effectMoment)) / float64(beatLength)
+	t := ease.OutCubic(input)
+	midiState.KeyVolumes[LPD8_PAD6] = byte(t * float64(intensity))
+}
+
 
 func (midiState *MidiState) RecentlyUpdatedFromPanel() bool {
 	return (time.Now().Unix() - midiState.LastMidiMessageTime) < RESET_TIMEOUT_FOR_AUTO_EFFECTS

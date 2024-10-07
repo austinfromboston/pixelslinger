@@ -24,6 +24,8 @@ type RhythmState struct {
 	FlashEffectActive    bool
 	GainEffectActive     bool
 	ScrambleEffectActive bool
+	BurstEffectActive    bool
+	RippleEffectActive   bool
 	AltScramble          Scramble
 	DefaultScramble      Scramble
 }
@@ -49,27 +51,45 @@ func (rhythmState *RhythmState) UpdateStateFromMessage(msg *osc.Message) {
 			rhythmState.Timing.InitialBeat = currentTime
 		}
 		currentBeat := msg.Arguments[0].(int32)
-		rhythmState.LastBeat = int(currentBeat)
-		rhythmState.BeatStartTime = currentTime
+// 		println("new beat", currentBeat)
+		if rhythmState.LastBeat != int(currentBeat) {
+    		rhythmState.LastBeat = int(currentBeat)
+	    	rhythmState.BeatStartTime = currentTime
+		}
 		if currentBeat == 1 {
 			rhythmState.Timing.LastOneBeat = currentTime
 		} else {
 			rhythmState.Timing.LastOneBeat = int64(float32(currentTime) - (float32(currentBeat) * (60000.0 / rhythmState.BPM)))
 		}
 	case "/lx/tempo/beatNumber":
-		beatNumber := msg.Arguments[0].(int32)
+
+		    beatNumber := msg.Arguments[0].(int32)
+
 		if beatNumber%(BeatsPerMeasure*16) == 0 {
-			effectSelector := rand.Intn(100)
 			rhythmState.AltScramble = newScramble()
 			rhythmState.GainEffectActive = false
 			rhythmState.ScrambleEffectActive = false
 			rhythmState.FlashEffectActive = false
-			if effectSelector > 40 && effectSelector < 65 {
+			rhythmState.BurstEffectActive = false
+            rhythmState.RippleEffectActive = false
+			effectSelector := rand.Intn(100)
+			if effectSelector < 15 {
+			println("no effect")
+			} else if effectSelector < 40 {
+			    println("flasheffect now")
 				rhythmState.FlashEffectActive = true
-			} else if effectSelector < 85 {
+			} else if effectSelector < 50 {
+			    println("new scramble now")
 				rhythmState.ScrambleEffectActive = true
-			} else {
+			} else if effectSelector < 60 {
+			println("gain effect now")
 				rhythmState.GainEffectActive = true
+			} else if effectSelector < 85 {
+			    println("burst effect now")
+			    rhythmState.BurstEffectActive = true
+			} else {
+				println("ripple effect now")
+			    rhythmState.RippleEffectActive = true
 			}
 		}
 	case "/lx/tempo/setBPM":
@@ -111,7 +131,7 @@ func newScramble() Scramble {
 }
 
 var bpmRanges = []int{-1, 60, 80, 100, 120, 140, 190, 355}
-var speeds = []int{30, 40, 65, 80, 95, 110, 127}
+var speeds = []int{45, 60, 75, 90, 100, 110, 127}
 
 func getSpeed(n int) int {
 	return speeds[sort.SearchInts(bpmRanges, n)]

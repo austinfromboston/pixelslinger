@@ -11,7 +11,7 @@ func init() {
 		"shield",
 		"spatial-stripes",
 		//"moire",
-		"white",
+		//"white",
 		"aqua",
 		"archimedes",
 		//"pong",
