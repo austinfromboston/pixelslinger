@@ -1,11 +1,13 @@
 package oscpixels
 
 import (
-	"github.com/austinfromboston/pixelslinger/patterns"
-	"github.com/hypebeast/go-osc/osc"
 	"math/rand"
 	"sort"
 	"time"
+
+	"github.com/austinfromboston/pixelslinger/aubio"
+	"github.com/austinfromboston/pixelslinger/patterns"
+	"github.com/hypebeast/go-osc/osc"
 )
 
 type RhythmState struct {
@@ -26,6 +28,7 @@ type RhythmState struct {
 	ScrambleEffectActive bool
 	AltScramble          Scramble
 	DefaultScramble      Scramble
+	SegmentCount         int32
 }
 
 type Scramble struct {
@@ -86,7 +89,53 @@ func (rhythmState *RhythmState) UpdateStateFromMessage(msg *osc.Message) {
 		} else {
 			rhythmState.Scrambles[rhythmState.NextTrackTitle] = newScramble()
 		}
+	case "/beat":
+		beatNumber := int32(msg.Arguments[0].(int32))
+		// _energyLevel := msg.Arguments[1].(float32)
+		bpm := float32(msg.Arguments[2].(float32))
+		// _decibels := float32(msg.Arguments[3].(float64))
+		// _barNumber := int(msg.Arguments[4].(int))
+		beatWithinBar := int(msg.Arguments[5].(int32))
+		if beatNumber%(BeatsPerMeasure*16) == 0 {
+			rhythmState.AltScramble = newScramble()
+			rhythmState.GainEffectActive = false
+			rhythmState.ScrambleEffectActive = false
+			rhythmState.FlashEffectActive = false
+		}
 
+		if beatNumber%BeatsPerMeasure == 0 {
+			// effect selector
+			effectSelector := rand.Intn(100)
+			if effectSelector > 20 && effectSelector < 65 {
+				rhythmState.FlashEffectActive = true
+			} else if effectSelector < 80 {
+				rhythmState.ScrambleEffectActive = true
+			} else {
+				rhythmState.GainEffectActive = true
+			}
+		}
+
+		rhythmState.BPM = bpm
+		rhythmState.CurrentSpeed = getSpeed(int(rhythmState.BPM))
+		if rhythmState.Timing.InitialBeat == 0 {
+			rhythmState.Timing.InitialBeat = currentTime
+		}
+		currentBeat := beatWithinBar + 1
+		rhythmState.LastBeat = int(currentBeat)
+		rhythmState.BeatStartTime = currentTime
+		if currentBeat == 1 {
+			rhythmState.Timing.LastOneBeat = currentTime
+		} else {
+			rhythmState.Timing.LastOneBeat = int64(float32(currentTime) - (float32(currentBeat) * (60000.0 / rhythmState.BPM)))
+		}
+
+	case "/segment":
+		rhythmState.SegmentCount += 1
+		if _, ok := rhythmState.Scrambles[string(rhythmState.SegmentCount)]; ok {
+			// do nothing
+		} else {
+			rhythmState.Scrambles[string(rhythmState.SegmentCount)] = newScramble()
+		}
 	}
 }
 
@@ -100,7 +149,7 @@ func newScramble() Scramble {
 	rand.Seed(time.Now().UnixNano()) // seed or it will be set to 1
 	patternIndex := rand.Intn(len(patterns.PATTERN_LIST))
 	hue := rand.Intn(127)
-	gain := 64 + rand.Intn(64)
+	gain := 84 + rand.Intn(40)
 	saturation := rand.Intn(60)
 	return Scramble{
 		patterns.PATTERN_LIST[patternIndex],
@@ -110,8 +159,8 @@ func newScramble() Scramble {
 	}
 }
 
-var bpmRanges = []int{-1, 60, 80, 100, 120, 140, 190, 355}
-var speeds = []int{30, 40, 65, 80, 95, 110, 127}
+var bpmRanges = []int{-1, 60, 80, 110, 115, 125, 190, 355}
+var speeds = []int{30, 40, 65, 80, 95, 110, 125, 127}
 
 func getSpeed(n int) int {
 	return speeds[sort.SearchInts(bpmRanges, n)]
@@ -149,8 +198,32 @@ func (rhythmState *RhythmState) UpdateStateFromOSCSlice(oscMessages []*osc.Messa
 	}
 }
 
+func (rhythmState *RhythmState) UpdateStateFromAubioSlice(beatEvents []*aubio.BeatEvent) {
+	for _, m := range beatEvents {
+		//osc.PrintMessage(m)
+		println(m)
+
+	}
+}
+
 func (rhythmState *RhythmState) UpdateStateFromChannel(oscMessageChan chan *osc.Message) {
 	rhythmState.UpdateStateFromOSCSlice(GetAvailableOSCMessages(oscMessageChan))
+}
+
+func (rhythmState *RhythmState) UpdateStateFromAubio(aubioMessageChan chan *aubio.BeatEvent) {
+	rhythmState.UpdateStateFromAubioSlice(GetAvailableBeatEvents(aubioMessageChan))
+
+}
+
+func GetAvailableBeatEvents(aubioMessageChan chan *aubio.BeatEvent) []*aubio.BeatEvent {
+	result := make([]*aubio.BeatEvent, 0)
+	for {
+		if len(aubioMessageChan) == 0 {
+			break
+		}
+		result = append(result, <-aubioMessageChan)
+	}
+	return result
 }
 
 // Pull all the available MidiMessages out of the channel without blocking.  Requires a channel

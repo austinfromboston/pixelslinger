@@ -5,6 +5,13 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"sort"
+	"strings"
+	"time"
+
+	// aubio "github.com/austinfromboston/pixelslinger/aubio"
 	"github.com/austinfromboston/pixelslinger/config"
 	"github.com/austinfromboston/pixelslinger/midi"
 	"github.com/austinfromboston/pixelslinger/opc"
@@ -13,11 +20,6 @@ import (
 	"github.com/droundy/goopt"
 	"github.com/pkg/profile"
 	"github.com/rakyll/portmidi"
-	"os"
-	"runtime"
-	"sort"
-	"strings"
-	"time"
 )
 
 //const ONBOARD_LED_HEARTBEAT = 0
@@ -173,6 +175,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 	fmt.Println("midiPath is", midiPath)
 	midiMessageChan := midi.GetMidiMessageStream(midiPath) // this launches the midi thread
 	oscMessageChan := oscpixels.GetOSCMessageStream("localhost:8765")
+	// aubioBeatChan := aubio.GetBeatEventStream() // initialize aubio beat event channel (uncomment when used)
 
 	rhythmState := oscpixels.RhythmState{Scrambles: make(map[string]oscpixels.Scramble)}
 	midiState := midi.MidiState{Rhythm: rhythmState, LastMidiMessageTime: 0}
@@ -232,6 +235,7 @@ func mainLoop(nPixels int, sourceThread, effectThread, pottyEffectThread, destTh
 		// get midi
 		midiState.UpdateStateFromChannel(midiMessageChan)
 		midiState.Rhythm.UpdateStateFromChannel(oscMessageChan)
+		// midiState.Rhythm.UpdateStateFromAubio(aubioBeatChan)
 		//if len(midiState.RecentMidiMessages) > 0 {
 		//	beaglebone.SetOnboardLED(ONBOARD_LED_MIDI, 1)
 		//} else {

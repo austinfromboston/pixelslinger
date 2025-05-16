@@ -1,3 +1,5 @@
+github.com/LedFx/aubio-go v0.0.0-20220831151230-c3840aaa4a8f h1:ppOWWNfQXHYxRKyX6OmZPbHBMEUHHCV1zaXOSRI40F4=
+github.com/LedFx/aubio-go v0.0.0-20220831151230-c3840aaa4a8f/go.mod h1:fCpqn+1CuDGzMycWaQs+lNDpLaUqDgnP3Rw+bhIYjzw=
 github.com/austinfromboston/pixelslinger v0.0.0-20190310030656-80b37814348b h1:lyOgC74R0CTsuU68xkZULTqO90Qve7F9U+vhVBFdS5w=
 github.com/austinfromboston/pixelslinger v0.0.0-20190310030656-80b37814348b/go.mod h1:sAcM4wOn/+xCii/46+sNV+rdo+Lg4ezjFKe10ri3v2c=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
@@ -13,6 +15,8 @@ github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776 h1:VRIbnDWRmAh5yBdz+
 github.com/fogleman/ease v0.0.0-20170301025033-8da417bf1776/go.mod h1:9wvnDu3YOfxzWM9Cst40msBF1C2UdQgDv962oTxSuMs=
 github.com/google/pprof v0.0.0-20211214055906-6f57359322fd h1:1FjCyPC+syAzJ5/2S8fqdZK1R22vvA0J7JZKcuOIQ7Y=
 github.com/google/pprof v0.0.0-20211214055906-6f57359322fd/go.mod h1:KgnwoLYCZ8IQu3XUZ8Nc/bM9CCZFOyjUNOSygVozoDg=
+github.com/gordonklaus/portaudio v0.0.0-20250206071425-98a94950218b h1:WEuQWBxelOGHA6z9lABqaMLMrfwVyMdN3UgRLT+YUPo=
+github.com/gordonklaus/portaudio v0.0.0-20250206071425-98a94950218b/go.mod h1:esZFQEUwqC+l76f2R8bIWSwXMaPbp79PppwZ1eJhFco=
 github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5 h1:fqwINudmUrvGCuw+e3tedZ2UJ0hklSw6t8UPomctKyQ=
 github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5/go.mod h1:lqMjoCs0y0GoRRujSPZRBaGb4c5ER6TfkFKSClxkMbY=
 github.com/ianlancetaylor/demangle v0.0.0-20210905161508-09a460cdf81d/go.mod h1:aYm2/VgdVmcIU8iMfdMvDMsRAQjcfZSKFby6HOFvi/w=

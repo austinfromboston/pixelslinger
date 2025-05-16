@@ -360,9 +360,10 @@ func (midiState *MidiState) UpdateStateFromRhythm() {
 		// beat link not active
 		return
 	}
-	if (beat == 4 || beat == 2) && effectMoment < EFFECT_DURATION {
+	// if (beat == 4 || beat == 2) && effectMoment < EFFECT_DURATION {
+	if effectMoment < EFFECT_DURATION {
 		if midiState.Rhythm.FlashEffectActive {
-			flashEffect(midiState, effectMoment, 55)
+			flashEffect(midiState, effectMoment, 15)
 		} else if midiState.Rhythm.ScrambleEffectActive {
 			scrambleEffect(midiState, midiState.Rhythm.AltScramble)
 		} else if midiState.Rhythm.GainEffectActive {
@@ -395,7 +396,7 @@ func scrambleEffect(midiState *MidiState, scramble oscpixels.Scramble) {
 
 func resetEffects(midiState *MidiState) {
 	midiState.KeyVolumes[LPD8_PAD1] = 0
-	if scramble, ok := midiState.Rhythm.Scrambles[midiState.Rhythm.CurrentTrackTitle]; ok {
+	if scramble, ok := midiState.Rhythm.Scrambles[string(midiState.Rhythm.SegmentCount)]; ok {
 		scrambleEffect(midiState, scramble)
 	} else {
 		scrambleEffect(midiState, midiState.Rhythm.DefaultScramble)

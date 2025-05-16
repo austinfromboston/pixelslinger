@@ -21,7 +21,7 @@ func oscEventReader(addr string, outCh chan *osc.Message) {
 
 	d := osc.NewStandardDispatcher()
 	d.AddMsgHandler("*", func(msg *osc.Message) {
-		//osc.PrintMessage(msg)
+		osc.PrintMessage(msg)
 		outCh <- msg
 	})
 	//d.AddMsgHandler("/tempo/setBPM", func(msg *osc.Message) {
