@@ -5,7 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/austinfromboston/pixelslinger/aubio"
 	"github.com/austinfromboston/pixelslinger/patterns"
 	"github.com/hypebeast/go-osc/osc"
 )
@@ -198,33 +197,33 @@ func (rhythmState *RhythmState) UpdateStateFromOSCSlice(oscMessages []*osc.Messa
 	}
 }
 
-func (rhythmState *RhythmState) UpdateStateFromAubioSlice(beatEvents []*aubio.BeatEvent) {
-	for _, m := range beatEvents {
-		//osc.PrintMessage(m)
-		println(m)
+// func (rhythmState *RhythmState) UpdateStateFromAubioSlice(beatEvents []*aubio.BeatEvent) {
+// 	for _, m := range beatEvents {
+// 		//osc.PrintMessage(m)
+// 		println(m)
 
-	}
-}
+// 	}
+// }
 
 func (rhythmState *RhythmState) UpdateStateFromChannel(oscMessageChan chan *osc.Message) {
 	rhythmState.UpdateStateFromOSCSlice(GetAvailableOSCMessages(oscMessageChan))
 }
 
-func (rhythmState *RhythmState) UpdateStateFromAubio(aubioMessageChan chan *aubio.BeatEvent) {
-	rhythmState.UpdateStateFromAubioSlice(GetAvailableBeatEvents(aubioMessageChan))
+// func (rhythmState *RhythmState) UpdateStateFromAubio(aubioMessageChan chan *aubio.BeatEvent) {
+// 	rhythmState.UpdateStateFromAubioSlice(GetAvailableBeatEvents(aubioMessageChan))
 
-}
+// }
 
-func GetAvailableBeatEvents(aubioMessageChan chan *aubio.BeatEvent) []*aubio.BeatEvent {
-	result := make([]*aubio.BeatEvent, 0)
-	for {
-		if len(aubioMessageChan) == 0 {
-			break
-		}
-		result = append(result, <-aubioMessageChan)
-	}
-	return result
-}
+// func GetAvailableBeatEvents(aubioMessageChan chan *aubio.BeatEvent) []*aubio.BeatEvent {
+// 	result := make([]*aubio.BeatEvent, 0)
+// 	for {
+// 		if len(aubioMessageChan) == 0 {
+// 			break
+// 		}
+// 		result = append(result, <-aubioMessageChan)
+// 	}
+// 	return result
+// }
 
 // Pull all the available MidiMessages out of the channel without blocking.  Requires a channel
 // with a buffer length greater than zero.
