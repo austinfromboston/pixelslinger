@@ -361,7 +361,7 @@ func MakeSendToArtnetThreadMultiple(hostname string, hostname2 string) ByteThrea
 				}
 				p := &packet.ArtDMXPacket{
 					Sequence: 1,
-					SubUni:   uint8(stripIdx),
+					SubUni:   uint8(stripIdx + 1),
 					Net:      0,
 					Data:     bytesToSend,
 				}
