@@ -12,6 +12,7 @@ func init() {
 		"spatial-stripes",
 		//"moire",
 		"white",
+		"redblue",
 		// "aqua",
 		"archimedes",
 		//"pong",
